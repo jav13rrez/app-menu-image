@@ -1,0 +1,50 @@
+export const t = {
+  appName: "FoodSocial AI",
+  steps: ["Subir", "Estilo", "Generar", "Diseño", "Exportar"],
+  upload: {
+    title: "Sube Tu Foto",
+    subtitle: "Toma una foto de tu plato -- incluso con mala luz. Lo transformaremos.",
+    dropzone: "Arrastra y suelta tu foto aquí, o haz clic para buscar",
+    formats: "JPG, PNG, WebP - Máx 20MB",
+    change: "Cambiar",
+    minRes: "La imagen debe tener al menos 400x400px",
+  },
+  style: {
+    title: "Elige un Estilo",
+    subtitle: "Selecciona el ambiente para tu foto",
+    narrativeTitle: "Toque Narrativo",
+    narrativeSubtitle: "Añade un elemento humano a la escena",
+    formatTitle: "Formato de Imagen",
+    formatSubtitle: "Elige la proporción de la imagen generada",
+  },
+  loading: {
+    messages: [
+      "Emplatando el plato...",
+      "Ajustando las luces del estudio...",
+      "Componiendo la toma perfecta...",
+      "Añadiendo los toques finales...",
+    ],
+    estimate: "Esto suele tardar 10-15 segundos",
+    tryAgain: "Reintentar",
+  },
+  canvas: {
+    aspectRatio: "Proporción",
+    textOverlay: "Texto Superpuesto",
+    download: "Descargar Imagen",
+    templates: ["Menú del Día", "Especial Fin de Semana", "Selección del Chef", "Tiempo Limitado"],
+  },
+  export: {
+    title: "Listo para Publicar",
+    caption: "Texto y Hashtags",
+    copyText: "Copiar Texto",
+    copied: "¡Copiado!",
+    downloadBtn: "Descargar",
+    share: "Compartir",
+    createAnother: "Crear Otro",
+  },
+  nav: {
+    back: "Atrás",
+    next: "Siguiente",
+    continueExport: "Continuar a Exportar",
+  },
+};
