@@ -42,8 +42,11 @@ backend/**/__pycache__/
 dist/
 build/
 
-# Generated files (optional - uncomment if you don't want to track generated images)
-# backend/static/generated/
+# Generated files
+backend/static/generated/
+
+# External projects
+mini-ads-builder/
 
 # Logs
 *.log

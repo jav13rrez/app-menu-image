@@ -1,6 +1,6 @@
 export const t = {
   appName: "FoodSocial AI",
-  steps: ["Subir", "Estilo", "Generar", "Diseño", "Exportar"],
+  steps: ["Subir", "Estilo", "Generar", "Exportar"],
   upload: {
     title: "Sube Tu Foto",
     subtitle: "Toma una foto de tu plato -- incluso con mala luz. Lo transformaremos.",
@@ -29,9 +29,23 @@ export const t = {
   },
   canvas: {
     aspectRatio: "Proporción",
-    textOverlay: "Texto Superpuesto",
+    generatedTexts: "Textos Generados",
+    headline: "Titular",
+    tagline: "Descripción",
+    editText: "Editar Texto",
+    fontSize: "Tamaño",
+    fontFamily: "Tipografía",
+    textColor: "Fuente",
+    shadowColor: "Sombra",
+    textWidth: "Ancho",
+    shadow: "Tipo sombra",
+    removeText: "Quitar texto",
     download: "Descargar Imagen",
-    templates: ["Menú del Día", "Especial Fin de Semana", "Selección del Chef", "Tiempo Limitado"],
+    dragHint: "Arrastra para posicionar",
+    caption: "Texto y Hashtags",
+    copyText: "Copiar Texto",
+    copied: "¡Copiado!",
+    createAnother: "Crear Otro",
   },
   export: {
     title: "Listo para Publicar",
@@ -45,6 +59,5 @@ export const t = {
   nav: {
     back: "Atrás",
     next: "Siguiente",
-    continueExport: "Continuar a Exportar",
   },
 };

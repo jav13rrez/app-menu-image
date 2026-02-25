@@ -64,7 +64,9 @@ export default function StepLoading() {
             useWizardStore.getState().setGenerationResult(
               result.result.generated_image_url,
               result.result.generated_copy,
-              result.result.hashtags
+              result.result.hashtags,
+              result.result.headline || "Delicioso",
+              result.result.tagline || "Un sabor único que despierta los sentidos"
             );
           } else if (result.status === "failed") {
             useWizardStore.getState().setError(result.error || "Error en la generación");

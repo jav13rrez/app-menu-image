@@ -31,6 +31,8 @@ class JobResultData(BaseModel):
     generated_image_url: str
     generated_copy: str
     hashtags: list[str]
+    headline: str = ""
+    tagline: str = ""
 
 
 class JobStatus(str, Enum):

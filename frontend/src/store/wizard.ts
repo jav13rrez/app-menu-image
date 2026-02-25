@@ -13,6 +13,8 @@ export interface WizardState {
   generatedImageUrl: string | null;
   generatedCopy: string | null;
   generatedHashtags: string[];
+  generatedHeadline: string | null;
+  generatedTagline: string | null;
   isGenerating: boolean;
   jobId: string | null;
   error: string | null;
@@ -22,7 +24,7 @@ export interface WizardState {
   setStyle: (styleId: string) => void;
   setNarrative: (narrative: string) => void;
   setAspectRatio: (ratio: AspectRatio) => void;
-  setGenerationResult: (imageUrl: string, copy: string, hashtags: string[]) => void;
+  setGenerationResult: (imageUrl: string, copy: string, hashtags: string[], headline: string, tagline: string) => void;
   setGenerating: (generating: boolean) => void;
   setJobId: (jobId: string) => void;
   setError: (error: string | null) => void;
@@ -39,6 +41,8 @@ const initialState = {
   generatedImageUrl: null,
   generatedCopy: null,
   generatedHashtags: [],
+  generatedHeadline: null,
+  generatedTagline: null,
   isGenerating: false,
   jobId: null,
   error: null,
@@ -54,11 +58,13 @@ export const useWizardStore = create<WizardState>()(
       setStyle: (styleId) => set({ selectedStyleId: styleId }),
       setNarrative: (narrative) => set({ selectedNarrative: narrative }),
       setAspectRatio: (ratio) => set({ selectedAspectRatio: ratio }),
-      setGenerationResult: (imageUrl, copy, hashtags) =>
+      setGenerationResult: (imageUrl, copy, hashtags, headline, tagline) =>
         set({
           generatedImageUrl: imageUrl,
           generatedCopy: copy,
           generatedHashtags: hashtags,
+          generatedHeadline: headline,
+          generatedTagline: tagline,
           isGenerating: false,
           currentStep: 3,
         }),
@@ -78,6 +84,8 @@ export const useWizardStore = create<WizardState>()(
         generatedImageUrl: state.generatedImageUrl,
         generatedCopy: state.generatedCopy,
         generatedHashtags: state.generatedHashtags,
+        generatedHeadline: state.generatedHeadline,
+        generatedTagline: state.generatedTagline,
       }),
     }
   )

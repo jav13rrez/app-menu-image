@@ -75,6 +75,8 @@ async def _process_job(job_id: str):
             generated_image_url=image_url,
             generated_copy=caption_data["caption"],
             hashtags=caption_data["hashtags"],
+            headline=caption_data.get("headline", "Delicioso"),
+            tagline=caption_data.get("tagline", "Un sabor único que despierta los sentidos"),
         )
         logger.info("Job %s completado exitosamente", job_id)
 
@@ -109,6 +111,8 @@ def _complete_job_mock(job_id: str):
             "¡Etiqueta a alguien con quien la compartirías!"
         ),
         hashtags=["#AltaCocina", "#Foodie", "#CenaPerfecta", "#VidaDeChef", "#FotografíaGastronómica"],
+        headline="Sabor Artesanal",
+        tagline="Cada bocado cuenta una historia de tradición y pasión culinaria",
     )
 
 

@@ -46,10 +46,14 @@ async def generate_caption(image_bytes: bytes) -> dict:
         raise RuntimeError("API key de Gemini no configurada")
 
     prompt = (
-        "Analiza esta imagen de comida. Genera un caption atractivo y emotivo para redes sociales "
-        "y 5-7 hashtags relevantes en español. IMPORTANTE: Responde ÚNICAMENTE en ESPAÑOL. "
-        "Devuelve SOLO JSON válido con este formato exacto, sin texto adicional: "
-        '{"caption": "tu caption aquí", "hashtags": ["#hashtag1", "#hashtag2"]}'
+        "Analiza esta imagen de comida. Genera:\n"
+        "1. Un caption emotivo para redes sociales (2-3 frases)\n"
+        "2. 5-7 hashtags relevantes\n"
+        "3. Un headline impactante de 2-5 palabras (estilo título grande H2)\n"
+        "4. Un tagline descriptivo de 7-15 palabras (frase promocional)\n\n"
+        "IMPORTANTE: Responde ÚNICAMENTE en ESPAÑOL.\n"
+        "Devuelve SOLO JSON válido con este formato exacto, sin texto adicional:\n"
+        '{"caption": "...", "hashtags": ["#..."], "headline": "...", "tagline": "..."}'
     )
 
     img = Image.open(BytesIO(image_bytes))
@@ -73,10 +77,14 @@ async def generate_caption(image_bytes: bytes) -> dict:
         return {
             "caption": data.get("caption", ""),
             "hashtags": data.get("hashtags", []),
+            "headline": data.get("headline", "Delicioso"),
+            "tagline": data.get("tagline", "Un sabor único que despierta los sentidos"),
         }
     except json.JSONDecodeError:
         logger.warning("Error al parsear respuesta de Gemini: %s", text[:200])
         return {
             "caption": text[:500],
             "hashtags": [],
+            "headline": "Delicioso",
+            "tagline": "Un sabor único que despierta los sentidos",
         }

@@ -26,6 +26,8 @@ export interface JobResult {
     generated_image_url: string;
     generated_copy: string;
     hashtags: string[];
+    headline: string;
+    tagline: string;
   };
   error?: string;
 }
@@ -64,6 +66,8 @@ async function mockPollJob(jobId: string): Promise<JobResult> {
       generated_image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
       generated_copy: "Saborea la noche... Nuestro chef acaba de terminar esta obra maestra. ¡Etiqueta a alguien con quien la compartirías!",
       hashtags: ["#AltaCocina", "#Foodie", "#CenaPerfecta", "#VidaDeChef", "#FotografíaGastronómica"],
+      headline: "Sabor Artesanal",
+      tagline: "Cada bocado cuenta una historia de tradición y pasión culinaria",
     },
   };
 }

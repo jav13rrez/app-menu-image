@@ -6,7 +6,6 @@ import StepUpload from "@/components/StepUpload";
 import StepStylePicker from "@/components/StepStylePicker";
 import StepLoading from "@/components/StepLoading";
 import StepCanvas from "@/components/StepCanvas";
-import StepExport from "@/components/StepExport";
 import { ChefHat, ArrowLeft, ArrowRight } from "lucide-react";
 
 export default function WizardPage() {
@@ -22,13 +21,11 @@ export default function WizardPage() {
   const goNext = () => {
     if (step === 0 && store.originalImagePreview) store.setStep(1);
     else if (step === 1 && store.selectedStyleId) store.setStep(2);
-    else if (step === 3) store.setStep(4);
   };
 
   const goBack = () => {
     if (step === 1) store.setStep(0);
     else if (step === 3) store.setStep(1);
-    else if (step === 4) store.setStep(3);
   };
 
   return (
@@ -75,15 +72,14 @@ export default function WizardPage() {
         })}
       </div>
 
-      <main className="flex-1 px-6 py-8 max-w-4xl mx-auto w-full">
+      <main className="flex-1 px-6 py-8 max-w-5xl mx-auto w-full">
         {step === 0 && <StepUpload />}
         {step === 1 && <StepStylePicker />}
         {step === 2 && <StepLoading />}
         {step === 3 && <StepCanvas />}
-        {step === 4 && <StepExport />}
       </main>
 
-      {step !== 2 && (
+      {step !== 2 && step !== 3 && (
         <footer className="px-6 py-4 border-t border-gray-800 flex justify-between">
           <button
             onClick={goBack}
@@ -94,27 +90,15 @@ export default function WizardPage() {
             <ArrowLeft className="w-4 h-4" />
             {t.nav.back}
           </button>
-          {step < 2 && (
-            <button
-              onClick={goNext}
-              disabled={!canGoNext()}
-              className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
-              aria-label={t.nav.next}
-            >
-              {t.nav.next}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
-          {step === 3 && (
-            <button
-              onClick={goNext}
-              className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 cursor-pointer transition-colors duration-200"
-              aria-label={t.nav.continueExport}
-            >
-              {t.nav.continueExport}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
+          <button
+            onClick={goNext}
+            disabled={!canGoNext()}
+            className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200"
+            aria-label={t.nav.next}
+          >
+            {t.nav.next}
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </footer>
       )}
     </div>
