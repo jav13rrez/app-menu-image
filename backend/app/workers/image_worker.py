@@ -20,6 +20,17 @@ def create_job(
 ) -> str:
     supabase = get_supabase()
     
+    # 1. Bypass para usuarios sin login ("dev-user")
+    if user_id == "dev-user":
+        import uuid
+        job_id = f"job_{uuid.uuid4().hex[:12]}"
+        logger.warning(f"Creando trabajo sin guardar en DB para dev-user: {job_id}")
+        if USE_MOCK:
+            asyncio.create_task(_process_job_mock(job_id))
+        else:
+            asyncio.create_task(_process_job_no_db(job_id, user_id, style_id, narrative, aspect_ratio, image_url))
+        return job_id
+
     # Crear registro en Supabase
     job_data = {
         "user_id": user_id,
@@ -89,9 +100,31 @@ async def _process_job(job_id: str):
             "error_message": str(e)
         }).eq("id", job_id).execute()
 
+jobs_store = {}
+
+async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative: str, aspect_ratio: str, image_url: str):
+    jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": user_id, "result": None, "error": None}
+    try:
+        image_bytes = await _download_image(image_url)
+        generated_bytes = await generate_food_image(image_bytes=image_bytes, style_id=style_id, narrative=narrative, aspect_ratio=aspect_ratio)
+        caption_data = await generate_caption(generated_bytes)
+        
+        jobs_store[job_id]["status"] = JobStatus.COMPLETED
+        jobs_store[job_id]["result"] = {
+            "generated_image_url": "https://storage.placeholder.com/generated",
+            "generated_copy": caption_data["caption"],
+            "hashtags": caption_data["hashtags"],
+            "headline": caption_data.get("headline", "Delicioso"),
+            "tagline": caption_data.get("tagline", "Sabor único"),
+        }
+    except Exception as e:
+        jobs_store[job_id]["status"] = JobStatus.FAILED
+        jobs_store[job_id]["error"] = str(e)
+
+
 async def _process_job_mock(job_id: str):
+    jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": "dev-user", "result": None, "error": None}
     await asyncio.sleep(5)
-    supabase = get_supabase()
     
     result_data = {
         "generated_image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
@@ -101,10 +134,9 @@ async def _process_job_mock(job_id: str):
         "tagline": "Hecho con pasión"
     }
     
-    supabase.table("jobs").update({
-        "status": JobStatus.COMPLETED,
-        "result_data": result_data
-    }).eq("id", job_id).execute()
+    jobs_store[job_id]["status"] = JobStatus.COMPLETED
+    jobs_store[job_id]["result"] = result_data
+
 
 async def _download_image(url: str) -> bytes:
     if url.startswith("data:"):
@@ -118,16 +150,21 @@ async def _download_image(url: str) -> bytes:
         return resp.content
 
 def get_job(job_id: str) -> dict | None:
-    supabase = get_supabase()
-    response = supabase.table("jobs").select("*").eq("id", job_id).maybe_single().execute()
-    data = response.data
-    if not data:
+    if job_id in jobs_store:
+        return jobs_store[job_id]
+        
+    try:
+        supabase = get_supabase()
+        response = supabase.table("jobs").select("*").eq("id", job_id).maybe_single().execute()
+        data = response.data
+        if not data:
+            return None
+        
+        return {
+            "status": data["status"],
+            "user_id": str(data["user_id"]),
+            "result": data.get("result_data"),
+            "error": data.get("error_message")
+        }
+    except Exception:
         return None
-    
-    # Mapear formato DB a formato API esperado por schemas.py
-    return {
-        "status": data["status"],
-        "user_id": str(data["user_id"]),
-        "result": data.get("result_data"),
-        "error": data.get("error_message")
-    }
