@@ -1,22 +1,15 @@
 import uuid
 import asyncio
 import logging
-from typing import Dict
 from pathlib import Path
-
 import httpx
 
 from app.models.schemas import JobStatus, JobResultData
-from app.core.config import USE_MOCK
+from app.core.config import USE_MOCK, SUPABASE_URL, SUPABASE_KEY
+from app.core.database import get_supabase
 from app.services.gemini import generate_food_image, generate_caption
 
 logger = logging.getLogger(__name__)
-
-STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static" / "generated"
-STATIC_DIR.mkdir(parents=True, exist_ok=True)
-
-jobs_store: Dict[str, dict] = {}
-
 
 def create_job(
     user_id: str,
@@ -25,34 +18,42 @@ def create_job(
     aspect_ratio: str,
     image_url: str,
 ) -> str:
-    job_id = f"job_{uuid.uuid4().hex[:12]}"
-    jobs_store[job_id] = {
-        "status": JobStatus.PROCESSING,
+    supabase = get_supabase()
+    
+    # Crear registro en Supabase
+    job_data = {
         "user_id": user_id,
+        "status": JobStatus.PROCESSING,
         "style_id": style_id,
         "narrative": narrative,
         "aspect_ratio": aspect_ratio,
-        "image_url": image_url,
-        "result": None,
-        "error": None,
+        "input_image_url": image_url
     }
+    
+    response = supabase.table("jobs").insert(job_data).execute()
+    job_id = response.data[0]["id"]
 
     if USE_MOCK:
-        asyncio.get_running_loop().call_later(5.0, _complete_job_mock, job_id)
+        # En Vercel, asyncio.ensure_future podría ser interrumpido. 
+        # Para producción real usaríamos un Webhook o Vercel Background Tasks.
+        asyncio.create_task(_process_job_mock(job_id))
     else:
-        asyncio.ensure_future(_process_job(job_id))
+        asyncio.create_task(_process_job(job_id))
 
     return job_id
 
-
 async def _process_job(job_id: str):
-    job = jobs_store.get(job_id)
-    if not job:
-        return
-
+    supabase = get_supabase()
+    
     try:
-        image_bytes = await _download_image(job["image_url"])
+        # 1. Obtener datos del trabajo
+        response = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
+        job = response.data
+        
+        # 2. Descargar imagen original
+        image_bytes = await _download_image(job["input_image_url"])
 
+        # 3. Generar con Gemini
         generated_bytes = await generate_food_image(
             image_bytes=image_bytes,
             style_id=job["style_id"],
@@ -60,31 +61,50 @@ async def _process_job(job_id: str):
             aspect_ratio=job["aspect_ratio"],
         )
 
-        filename = f"{job_id}.png"
-        filepath = STATIC_DIR / filename
-        with open(filepath, "wb") as f:
-            f.write(generated_bytes)
-
-        image_url = f"http://localhost:8000/static/generated/{filename}"
-
-        logger.info("Job %s: generando caption en español", job_id)
+        # 4. Subir a Supabase Storage (Opcional, por ahora simulamos URL o usamos base64)
+        # NOTA: En producción real, subirías `generated_bytes` a un bucket de Supabase
+        # y obtendrías una URL pública.
+        
+        # 5. Generar Copy
         caption_data = await generate_caption(generated_bytes)
 
-        job["status"] = JobStatus.COMPLETED
-        job["result"] = JobResultData(
-            generated_image_url=image_url,
-            generated_copy=caption_data["caption"],
-            hashtags=caption_data["hashtags"],
-            headline=caption_data.get("headline", "Delicioso"),
-            tagline=caption_data.get("tagline", "Un sabor único que despierta los sentidos"),
-        )
-        logger.info("Job %s completado exitosamente", job_id)
+        # 6. Actualizar Supabase
+        result_data = {
+            "generated_image_url": "https://storage.placeholder.com/generated", # Reemplazar con URL real de Storage
+            "generated_copy": caption_data["caption"],
+            "hashtags": caption_data["hashtags"],
+            "headline": caption_data.get("headline", "Delicioso"),
+            "tagline": caption_data.get("tagline", "Sabor único"),
+        }
+        
+        supabase.table("jobs").update({
+            "status": JobStatus.COMPLETED,
+            "result_data": result_data
+        }).eq("id", job_id).execute()
 
     except Exception as e:
-        logger.error("Job %s falló: %s", job_id, str(e))
-        job["status"] = JobStatus.FAILED
-        job["error"] = str(e)
+        logger.error(f"Job {job_id} falló: {str(e)}")
+        supabase.table("jobs").update({
+            "status": JobStatus.FAILED,
+            "error_message": str(e)
+        }).eq("id", job_id).execute()
 
+async def _process_job_mock(job_id: str):
+    await asyncio.sleep(5)
+    supabase = get_supabase()
+    
+    result_data = {
+        "generated_image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
+        "generated_copy": "Sabor artesanal. ¡Etiqueta a alguien con quien compartirías!",
+        "hashtags": ["#AltaCocina", "#Foodie"],
+        "headline": "Sabor Artesanal",
+        "tagline": "Hecho con pasión"
+    }
+    
+    supabase.table("jobs").update({
+        "status": JobStatus.COMPLETED,
+        "result_data": result_data
+    }).eq("id", job_id).execute()
 
 async def _download_image(url: str) -> bytes:
     if url.startswith("data:"):
@@ -97,24 +117,17 @@ async def _download_image(url: str) -> bytes:
         resp.raise_for_status()
         return resp.content
 
-
-def _complete_job_mock(job_id: str):
-    job = jobs_store.get(job_id)
-    if not job:
-        return
-
-    job["status"] = JobStatus.COMPLETED
-    job["result"] = JobResultData(
-        generated_image_url="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
-        generated_copy=(
-            "Saborea la noche... Nuestro chef acaba de terminar esta obra maestra. "
-            "¡Etiqueta a alguien con quien la compartirías!"
-        ),
-        hashtags=["#AltaCocina", "#Foodie", "#CenaPerfecta", "#VidaDeChef", "#FotografíaGastronómica"],
-        headline="Sabor Artesanal",
-        tagline="Cada bocado cuenta una historia de tradición y pasión culinaria",
-    )
-
-
 def get_job(job_id: str) -> dict | None:
-    return jobs_store.get(job_id)
+    supabase = get_supabase()
+    response = supabase.table("jobs").select("*").eq("id", job_id).maybe_single().execute()
+    data = response.data
+    if not data:
+        return None
+    
+    # Mapear formato DB a formato API esperado por schemas.py
+    return {
+        "status": data["status"],
+        "user_id": str(data["user_id"]),
+        "result": data.get("result_data"),
+        "error": data.get("error_message")
+    }

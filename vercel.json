@@ -1,0 +1,24 @@
+{
+    "version": 2,
+    "rewrites": [
+        {
+            "source": "/api/v1/(.*)",
+            "destination": "backend/app/main.py"
+        },
+        {
+            "source": "/static/(.*)",
+            "destination": "backend/static/$1"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "frontend/$1"
+        }
+    ],
+    "functions": {
+        "backend/app/main.py": {
+            "runtime": "vercel-python@0.1.0",
+            "memory": 1024,
+            "maxDuration": 60
+        }
+    }
+}

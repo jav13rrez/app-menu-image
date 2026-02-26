@@ -13,6 +13,10 @@ DEFAULT_QUOTA = int(os.getenv("DEFAULT_QUOTA", "50"))
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "") # Service Role Key para operaciones de servidor
+SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "") # Para validar JWT de Supabase Auth
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
 USE_MOCK = not bool(GEMINI_API_KEY)
