@@ -14,13 +14,22 @@ export default function WizardPage() {
 
   const canGoNext = () => {
     if (step === 0) return !!store.originalImagePreview;
-    if (step === 1) return !!store.selectedStyleId;
+    if (step === 1) {
+      return !!store.originalImagePreview && !!store.selectedStyleId && !!store.selectedNarrative;
+    }
     return false;
   };
 
   const goNext = () => {
     if (step === 0 && store.originalImagePreview) store.setStep(1);
-    else if (step === 1 && store.selectedStyleId) store.setStep(2);
+    else if (
+      step === 1 &&
+      store.originalImagePreview &&
+      store.selectedStyleId &&
+      store.selectedNarrative
+    ) {
+      store.setStep(2);
+    }
   };
 
   const goBack = () => {

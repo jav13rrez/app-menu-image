@@ -15,20 +15,32 @@ function fileToDataUri(file: File): Promise<string> {
   });
 }
 
+function preloadImage(url: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve();
+    img.onerror = () => reject(new Error("La imagen generada no se pudo cargar."));
+    img.src = url;
+  });
+}
+
 export default function StepLoading() {
   const store = useWizardStore();
   const cancelledRef = useRef(false);
+  const finalizingRef = useRef(false);
   const messageIndex = useRef(0);
   const messageRef = useRef<HTMLParagraphElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     cancelledRef.current = false;
+    finalizingRef.current = false;
 
     const messages = t.loading.messages;
 
     const msgInterval = setInterval(() => {
       messageIndex.current = (messageIndex.current + 1) % messages.length;
-      if (messageRef.current) {
+      if (messageRef.current && !finalizingRef.current) {
         messageRef.current.textContent = messages[messageIndex.current];
       }
     }, 3000);
@@ -45,11 +57,17 @@ export default function StepLoading() {
         if (state.originalImageFile) {
           imageUrl = await fileToDataUri(state.originalImageFile);
         }
+        if (!imageUrl) {
+          throw new Error("Falta la imagen original. Vuelve al paso 1 y subela de nuevo.");
+        }
+        if (!state.selectedStyleId) {
+          throw new Error("Falta seleccionar un estilo.");
+        }
 
         const genRes = await generateImage({
           image_url: imageUrl,
           style_id: state.selectedStyleId,
-          narrative: state.selectedNarrative,
+          narrative: state.selectedNarrative || "none",
           aspect_ratio: state.selectedAspectRatio,
         });
 
@@ -61,6 +79,19 @@ export default function StepLoading() {
           const result = await pollJob(genRes.job_id);
           if (cancelledRef.current) return;
           if (result.status === "completed" && result.result) {
+            finalizingRef.current = true;
+            if (messageRef.current) {
+              messageRef.current.textContent = "Ya está... preparando la vista final...";
+            }
+            if (progressRef.current) {
+              progressRef.current.style.width = "92%";
+              progressRef.current.style.animation = "none";
+            }
+            await preloadImage(result.result.generated_image_url);
+            if (cancelledRef.current) return;
+            if (progressRef.current) {
+              progressRef.current.style.width = "100%";
+            }
             useWizardStore.getState().setGenerationResult(
               result.result.generated_image_url,
               result.result.generated_copy,
@@ -114,6 +145,7 @@ export default function StepLoading() {
       </p>
       <div className="w-64 h-1.5 bg-gray-800 rounded-full overflow-hidden">
         <div
+          ref={progressRef}
           className="h-full bg-amber-500 rounded-full"
           style={{ animation: "pulse-slow 2s ease-in-out infinite", width: "60%" }}
         />

@@ -64,10 +64,11 @@ async function mockPollJob(jobId: string): Promise<JobResult> {
     status: "completed",
     result: {
       generated_image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
-      generated_copy: "Saborea la noche... Nuestro chef acaba de terminar esta obra maestra. ¡Etiqueta a alguien con quien la compartirías!",
-      hashtags: ["#AltaCocina", "#Foodie", "#CenaPerfecta", "#VidaDeChef", "#FotografíaGastronómica"],
+      generated_copy:
+        "Saborea la noche... Nuestro chef acaba de terminar esta obra maestra. ¡Etiqueta a alguien con quien la compartirías!",
+      hashtags: ["#AltaCocina", "#Foodie", "#CenaPerfecta", "#VidaDeChef", "#FotografiaGastronomica"],
       headline: "Sabor Artesanal",
-      tagline: "Cada bocado cuenta una historia de tradición y pasión culinaria",
+      tagline: "Cada bocado cuenta una historia de tradicion y pasion culinaria",
     },
   };
 }
@@ -80,6 +81,23 @@ function authHeaders(): Record<string, string> {
   return headers;
 }
 
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = await res.json();
+    if (typeof data?.detail === "string") return data.detail;
+    if (Array.isArray(data?.detail) && data.detail.length > 0) {
+      const first = data.detail[0];
+      const path = Array.isArray(first?.loc) ? first.loc.join(".") : "request";
+      const msg = typeof first?.msg === "string" ? first.msg : "invalid request";
+      return `${path}: ${msg}`;
+    }
+    if (typeof data?.message === "string") return data.message;
+  } catch {
+    // ignore non-JSON responses
+  }
+  return fallback;
+}
+
 export async function generateImage(req: GenerateRequest): Promise<GenerateResponse> {
   if (useMock) return mockGenerate();
   const res = await fetch(`${API_BASE}/api/v1/generate`, {
@@ -87,7 +105,10 @@ export async function generateImage(req: GenerateRequest): Promise<GenerateRespo
     headers: authHeaders(),
     body: JSON.stringify(req),
   });
-  if (!res.ok) throw new Error(`Error en generación: ${res.status}`);
+  if (!res.ok) {
+    const msg = await readErrorMessage(res, `Error en generacion: ${res.status}`);
+    throw new Error(msg);
+  }
   return res.json();
 }
 
@@ -96,6 +117,9 @@ export async function pollJob(jobId: string): Promise<JobResult> {
   const res = await fetch(`${API_BASE}/api/v1/jobs/${jobId}`, {
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error(`Error en consulta: ${res.status}`);
+  if (!res.ok) {
+    const msg = await readErrorMessage(res, `Error en consulta: ${res.status}`);
+    throw new Error(msg);
+  }
   return res.json();
 }
