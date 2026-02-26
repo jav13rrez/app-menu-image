@@ -79,9 +79,13 @@ async def _process_job(job_id: str):
         # 5. Generar Copy
         caption_data = await generate_caption(generated_bytes)
 
+        import base64
+        base64_image = base64.b64encode(generated_bytes).decode('utf-8')
+        image_data_uri = f"data:image/jpeg;base64,{base64_image}"
+
         # 6. Actualizar Supabase
         result_data = {
-            "generated_image_url": "https://storage.placeholder.com/generated", # Reemplazar con URL real de Storage
+            "generated_image_url": image_data_uri,
             "generated_copy": caption_data["caption"],
             "hashtags": caption_data["hashtags"],
             "headline": caption_data.get("headline", "Delicioso"),
@@ -109,9 +113,13 @@ async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative
         generated_bytes = await generate_food_image(image_bytes=image_bytes, style_id=style_id, narrative=narrative, aspect_ratio=aspect_ratio)
         caption_data = await generate_caption(generated_bytes)
         
+        import base64
+        base64_image = base64.b64encode(generated_bytes).decode('utf-8')
+        image_data_uri = f"data:image/jpeg;base64,{base64_image}"
+        
         jobs_store[job_id]["status"] = JobStatus.COMPLETED
         jobs_store[job_id]["result"] = {
-            "generated_image_url": "https://storage.placeholder.com/generated",
+            "generated_image_url": image_data_uri,
             "generated_copy": caption_data["caption"],
             "hashtags": caption_data["hashtags"],
             "headline": caption_data.get("headline", "Delicioso"),
