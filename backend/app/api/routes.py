@@ -22,13 +22,21 @@ async def generate_image(
             detail="Créditos insuficientes. Por favor actualiza tu plan.",
         )
 
-    job_id = create_job(
-        user_id=user.user_id,
-        style_id=req.style_id,
-        narrative=req.narrative,
-        aspect_ratio=req.aspect_ratio.value,
-        image_url=req.image_url,
-    )
+    try:
+        job_id = create_job(
+            user_id=user.user_id,
+            style_id=req.style_id,
+            narrative=req.narrative,
+            aspect_ratio=req.aspect_ratio.value,
+            image_url=req.image_url,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno creando trabajo: {str(e)}",
+        )
 
     return GenerateResponse(
         job_id=job_id,
