@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
-MODEL = "gemini-3-pro-image-preview"
+MODEL = "gemini-3.1-flash-image-preview"
 
 
 async def generate_food_image(
