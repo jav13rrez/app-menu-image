@@ -294,9 +294,28 @@ export default function StepCanvas() {
     }
 
     const dataUrl = canvas.toDataURL("image/png", 1);
+    const fileName = `foodsocial_${Date.now()}.png`;
+
+    try {
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], fileName, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          files: [file],
+          title: t.appName,
+        });
+        return;
+      }
+    } catch (e) {
+      console.warn("Share API fallback", e);
+    }
+
+    // Fallback: Descarga clásica para navegadores de PC
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `foodsocial_${Date.now()}.png`;
+    a.download = fileName;
     a.click();
   };
 
