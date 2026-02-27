@@ -57,6 +57,7 @@ interface CanvasText {
   type: "h2" | "p";
   maxWidth: number;
   shadowPreset: ShadowPreset;
+  fontWeight: string;
 }
 
 type DragMode = "move" | "resize-left" | "resize-right" | null;
@@ -124,6 +125,7 @@ export default function StepCanvas() {
       type,
       maxWidth: 80,
       shadowPreset: type === "h2" ? "none" : "soft",
+      fontWeight: type === "h2" ? "900" : "500",
     };
 
     setTexts((prev) => [...prev, newText]);
@@ -266,7 +268,7 @@ export default function StepCanvas() {
       const textY = (text.y / 100) * size.h;
       const maxWidthPx = (text.maxWidth / 100) * size.w;
 
-      ctx.font = `bold ${text.fontSize}px "${text.fontFamily}", sans-serif`;
+      ctx.font = `${text.fontWeight} ${text.fontSize}px "${text.fontFamily}", sans-serif`;
       ctx.fillStyle = text.color;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -413,7 +415,7 @@ export default function StepCanvas() {
                       fontFamily: `"${text.fontFamily}", sans-serif`,
                       color: text.color,
                       textShadow: getShadowCSS(text.shadowPreset, text.color, text.shadowColor),
-                      fontWeight: "bold",
+                      fontWeight: text.fontWeight,
                       lineHeight: 1.2,
                       wordWrap: "break-word",
                       overflowWrap: "break-word",
@@ -426,42 +428,68 @@ export default function StepCanvas() {
 
                   {isSelected && (
                     <div
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-2xl flex flex-col gap-3 z-50 pointer-events-auto min-w-[300px]"
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-2xl flex flex-col gap-3 z-50 pointer-events-auto min-w-[320px]"
                       onMouseDown={(e) => e.stopPropagation()}
                       onTouchStart={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {/* Fila 1: Tipografía, Peso, Color y Borrar */}
                       <div className="flex items-center justify-between gap-2">
                         <select
                           value={text.fontFamily}
                           onChange={(e) => updateText(text.id, { fontFamily: e.target.value })}
-                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer w-[100px]"
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 min-w-[90px]"
                         >
                           {FONTS.map((font) => (
                             <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>{font.family}</option>
                           ))}
                         </select>
 
-                        <div className="flex items-center bg-gray-800 rounded border border-gray-700">
-                          <button onClick={() => updateText(text.id, { fontSize: Math.max(16, text.fontSize - 4) })} className="px-2 py-1 text-gray-400 hover:text-white cursor-pointer active:bg-gray-700 rounded-l">-</button>
-                          <span className="text-xs text-white w-6 text-center select-none">{text.fontSize}</span>
-                          <button onClick={() => updateText(text.id, { fontSize: Math.min(96, text.fontSize + 4) })} className="px-2 py-1 text-gray-400 hover:text-white cursor-pointer active:bg-gray-700 rounded-r">+</button>
+                        <select
+                          value={text.fontWeight}
+                          onChange={(e) => updateText(text.id, { fontWeight: e.target.value })}
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer w-[75px]"
+                        >
+                          <option value="300">Light</option>
+                          <option value="400">Regular</option>
+                          <option value="500">Medium</option>
+                          <option value="600">Semibold</option>
+                          <option value="700">Bold</option>
+                          <option value="800">ExtraBold</option>
+                          <option value="900">Black</option>
+                        </select>
+
+                        <div className="relative w-8 h-8 rounded border border-gray-600 bg-gray-800 shrink-0 overflow-hidden">
+                          <input
+                            type="color"
+                            value={text.color}
+                            onChange={(e) => updateText(text.id, { color: e.target.value })}
+                            className="absolute -top-2 -left-2 w-[150%] h-[150%] cursor-pointer"
+                          />
                         </div>
 
-                        <input
-                          type="color"
-                          value={text.color}
-                          onChange={(e) => updateText(text.id, { color: e.target.value })}
-                          className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0"
-                        />
-
-                        <button onClick={(e) => { e.stopPropagation(); removeText(text.id); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded cursor-pointer">
+                        <button onClick={(e) => { e.stopPropagation(); removeText(text.id); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded cursor-pointer shrink-0">
                           <X className="w-4 h-4" />
                         </button>
                       </div>
 
+                      {/* Fila 2: Tamaño de fuente slider */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold shrink-0 w-[45px]">Tamaño</span>
+                        <input
+                          type="range"
+                          min="16"
+                          max="96"
+                          value={text.fontSize}
+                          onChange={(e) => updateText(text.id, { fontSize: Number(e.target.value) })}
+                          className="w-full accent-amber-500 cursor-pointer"
+                        />
+                        <span className="text-xs text-gray-400 w-8 text-right font-mono">{text.fontSize}px</span>
+                      </div>
+
+                      {/* Fila 3: Tipo de sombra y color de sombra */}
                       <div className="flex items-center justify-between gap-2 border-t border-gray-800 pt-3">
-                        <span className="text-[10px] text-gray-500 uppercase font-semibold">{t.canvas.shadow}</span>
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold shrink-0">Sombra</span>
                         <select
                           value={text.shadowPreset}
                           onChange={(e) => updateText(text.id, { shadowPreset: e.target.value as ShadowPreset })}
@@ -472,13 +500,15 @@ export default function StepCanvas() {
                           ))}
                         </select>
 
-                        <input
-                          type="color"
-                          value={text.shadowColor}
-                          onChange={(e) => updateText(text.id, { shadowColor: e.target.value })}
-                          disabled={text.shadowPreset === "none" || text.shadowPreset === "glow"}
-                          className="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 disabled:opacity-30"
-                        />
+                        <div className={`relative w-8 h-8 rounded shrink-0 overflow-hidden transition-opacity ${text.shadowPreset === "none" || text.shadowPreset === "glow" ? "opacity-30 border-transparent" : "border border-gray-600 bg-gray-800"}`}>
+                          <input
+                            type="color"
+                            value={text.shadowColor}
+                            onChange={(e) => updateText(text.id, { shadowColor: e.target.value })}
+                            disabled={text.shadowPreset === "none" || text.shadowPreset === "glow"}
+                            className="absolute -top-2 -left-2 w-[150%] h-[150%] cursor-pointer"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}
