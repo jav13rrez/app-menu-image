@@ -64,7 +64,7 @@ type DragMode = "move" | "resize-left" | "resize-right" | null;
 function getShadowCSS(preset: ShadowPreset, textColor: string, shadowColor: string): string {
   const config = SHADOW_PRESETS[preset];
   if (preset === "none") return "none";
-  
+
   let color: string;
   if (config.useTextColor) {
     color = hexToRgba(textColor, 0.6);
@@ -73,7 +73,7 @@ function getShadowCSS(preset: ShadowPreset, textColor: string, shadowColor: stri
   } else {
     color = config.color;
   }
-  
+
   return `${config.offsetX}px ${config.offsetY}px ${config.blur}px ${color}`;
 }
 
@@ -108,10 +108,10 @@ export default function StepCanvas() {
   const hasP = texts.some((t) => t.type === "p");
 
   const addText = (type: "h2" | "p") => {
-    const content = type === "h2" 
+    const content = type === "h2"
       ? (store.generatedHeadline || "Delicioso")
       : (store.generatedTagline || "Un sabor único");
-    
+
     const newText: CanvasText = {
       id: `text-${Date.now()}`,
       content,
@@ -125,7 +125,7 @@ export default function StepCanvas() {
       maxWidth: 80,
       shadowPreset: type === "h2" ? "none" : "soft",
     };
-    
+
     setTexts((prev) => [...prev, newText]);
     setSelectedId(newText.id);
   };
@@ -143,34 +143,41 @@ export default function StepCanvas() {
     );
   };
 
-  const handleMoveStart = useCallback((e: React.MouseEvent, textId: string) => {
+  const handleMoveStart = useCallback((e: React.MouseEvent | React.TouchEvent, textId: string) => {
     e.stopPropagation();
     if (!containerRef.current) return;
-    
+
     const text = texts.find((t) => t.id === textId);
     if (!text) return;
-    
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
     const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = ((e.clientX - rect.left) / displayW) * 100;
-    const mouseY = ((e.clientY - rect.top) / displayH) * 100;
-    
+    const mouseX = ((clientX - rect.left) / displayW) * 100;
+    const mouseY = ((clientY - rect.top) / displayH) * 100;
+
     setDragStartX(mouseX - text.x);
     setInitialX(mouseY - text.y);
     setDragMode("move");
     setSelectedId(textId);
   }, [texts, displayW, displayH]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, textId: string, side: "left" | "right") => {
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent, textId: string, side: "left" | "right") => {
     e.stopPropagation();
-    e.preventDefault();
+    if (!('touches' in e)) {
+      e.preventDefault();
+    }
     if (!containerRef.current) return;
-    
+
     const text = texts.find((t) => t.id === textId);
     if (!text) return;
-    
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+
     const rect = containerRef.current.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    
+    const mouseX = clientX - rect.left;
+
     setDragStartX(mouseX);
     setInitialWidth(text.maxWidth);
     setInitialX(text.x);
@@ -178,27 +185,30 @@ export default function StepCanvas() {
     setSelectedId(textId);
   }, [texts]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!dragMode || !containerRef.current || !selectedId) return;
-    
+
     const text = texts.find((t) => t.id === selectedId);
     if (!text) return;
-    
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
     const rect = containerRef.current.getBoundingClientRect();
-    
+
     if (dragMode === "move") {
-      const mouseX = ((e.clientX - rect.left) / displayW) * 100;
-      const mouseY = ((e.clientY - rect.top) / displayH) * 100;
-      
+      const mouseX = ((clientX - rect.left) / displayW) * 100;
+      const mouseY = ((clientY - rect.top) / displayH) * 100;
+
       const newX = Math.max(5, Math.min(95, mouseX - dragStartX));
       const newY = Math.max(5, Math.min(95, mouseY - initialX));
-      
+
       updateText(selectedId, { x: newX, y: newY });
     } else if (dragMode === "resize-left" || dragMode === "resize-right") {
-      const mouseX = e.clientX - rect.left;
+      const mouseX = clientX - rect.left;
       const deltaX = mouseX - dragStartX;
       const deltaPercent = (deltaX / displayW) * 100;
-      
+
       if (dragMode === "resize-right") {
         const newWidth = Math.max(20, Math.min(100, initialWidth + deltaPercent * 2));
         updateText(selectedId, { maxWidth: newWidth });
@@ -236,7 +246,7 @@ export default function StepCanvas() {
 
     const img = new Image();
     img.crossOrigin = "anonymous";
-    
+
     await new Promise<void>((resolve, reject) => {
       img.onload = () => resolve();
       img.onerror = reject;
@@ -255,12 +265,12 @@ export default function StepCanvas() {
       const textX = (text.x / 100) * size.w;
       const textY = (text.y / 100) * size.h;
       const maxWidthPx = (text.maxWidth / 100) * size.w;
-      
+
       ctx.font = `bold ${text.fontSize}px "${text.fontFamily}", sans-serif`;
       ctx.fillStyle = text.color;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      
+
       const shadowConfig = SHADOW_PRESETS[text.shadowPreset];
       if (text.shadowPreset !== "none") {
         ctx.shadowBlur = shadowConfig.blur;
@@ -279,7 +289,7 @@ export default function StepCanvas() {
         ctx.shadowOffsetY = 0;
         ctx.shadowColor = "transparent";
       }
-      
+
       wrapText(ctx, text.content, textX, textY, maxWidthPx, text.fontSize * 1.2);
     }
 
@@ -307,11 +317,14 @@ export default function StepCanvas() {
       <div className="flex-1 flex justify-center items-start">
         <div
           ref={containerRef}
-          className="relative border border-gray-700 rounded-xl overflow-hidden bg-gray-900 select-none"
-          style={{ width: displayW, height: displayH }}
+          className="relative border border-gray-700 rounded-xl overflow-hidden bg-gray-900 select-none touch-none"
+          style={{ width: displayW, height: displayH, touchAction: "none" }}
           onMouseMove={handleMouseMove}
+          onTouchMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
           onMouseLeave={handleMouseUp}
+          onTouchCancel={handleMouseUp}
           onClick={handleCanvasClick}
         >
           {store.generatedImageUrl && (
@@ -321,11 +334,11 @@ export default function StepCanvas() {
               className="absolute inset-0 w-full h-full object-cover pointer-events-none"
             />
           )}
-          
+
           {texts.map((text) => {
             const isSelected = selectedId === text.id;
             const widthPx = (text.maxWidth / 100) * displayW;
-            
+
             return (
               <div
                 key={text.id}
@@ -337,32 +350,34 @@ export default function StepCanvas() {
                 }}
               >
                 <div
-                  className={`relative cursor-move group ${
-                    dragMode === "move" && selectedId === text.id ? "cursor-grabbing" : "cursor-grab"
-                  }`}
+                  className={`relative cursor-move group ${dragMode === "move" && selectedId === text.id ? "cursor-grabbing" : "cursor-grab"
+                    }`}
                   onMouseDown={(e) => handleMoveStart(e, text.id)}
+                  onTouchStart={(e) => handleMoveStart(e, text.id)}
                 >
                   {isSelected && (
                     <>
                       <div
                         className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center cursor-ew-resize z-10 group/handle"
                         onMouseDown={(e) => handleResizeStart(e, text.id, "left")}
+                        onTouchStart={(e) => handleResizeStart(e, text.id, "left")}
                       >
                         <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg" />
                       </div>
-                      
+
                       <div
                         className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center cursor-ew-resize z-10 group/handle"
                         onMouseDown={(e) => handleResizeStart(e, text.id, "right")}
+                        onTouchStart={(e) => handleResizeStart(e, text.id, "right")}
                       >
                         <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg" />
                       </div>
-                      
-                      <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none" 
-                           style={{ margin: "-4px" }} />
+
+                      <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none"
+                        style={{ margin: "-4px" }} />
                     </>
                   )}
-                  
+
                   <div
                     className="text-center px-2"
                     style={{
@@ -378,7 +393,7 @@ export default function StepCanvas() {
                   >
                     {text.content}
                   </div>
-                  
+
                   {isSelected && (
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 rounded-lg px-3 py-1.5 text-xs text-white flex items-center gap-2 whitespace-nowrap shadow-lg">
                       <Move className="w-3 h-3" />
@@ -406,11 +421,10 @@ export default function StepCanvas() {
                 key={ratio}
                 onClick={() => changeAspect(ratio)}
                 aria-label={`Proporción ${ratio}`}
-                className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors duration-200 ${
-                  aspectRatio === ratio
-                    ? "bg-amber-600 text-white"
-                    : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-                }`}
+                className={`px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors duration-200 ${aspectRatio === ratio
+                  ? "bg-amber-600 text-white"
+                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                  }`}
               >
                 {ratio}
               </button>
@@ -426,11 +440,10 @@ export default function StepCanvas() {
             <button
               onClick={() => addText("h2")}
               disabled={hasH2}
-              className={`px-3 py-3 rounded-lg text-sm text-left cursor-pointer transition-colors duration-200 flex items-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                hasH2
-                  ? "bg-amber-600/20 ring-1 ring-amber-500 text-amber-400"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
+              className={`px-3 py-3 rounded-lg text-sm text-left cursor-pointer transition-colors duration-200 flex items-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasH2
+                ? "bg-amber-600/20 ring-1 ring-amber-500 text-amber-400"
+                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                }`}
             >
               <Type className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>
@@ -438,15 +451,14 @@ export default function StepCanvas() {
                 <div className="font-bold">{store.generatedHeadline || "Delicioso"}</div>
               </div>
             </button>
-            
+
             <button
               onClick={() => addText("p")}
               disabled={hasP}
-              className={`px-3 py-3 rounded-lg text-sm text-left cursor-pointer transition-colors duration-200 flex items-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                hasP
-                  ? "bg-amber-600/20 ring-1 ring-amber-500 text-amber-400"
-                  : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-              }`}
+              className={`px-3 py-3 rounded-lg text-sm text-left cursor-pointer transition-colors duration-200 flex items-start gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${hasP
+                ? "bg-amber-600/20 ring-1 ring-amber-500 text-amber-400"
+                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                }`}
             >
               <Type className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>

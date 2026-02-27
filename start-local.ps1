@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$frontend = Join-Path $root 'frontend'
+$frontend = $root
 $backend = Join-Path $root 'backend'
 
 function Test-PortOpen {
@@ -43,23 +43,32 @@ function Get-EnvValueFromFiles {
 }
 
 if (-not (Test-Path (Join-Path $frontend 'package.json'))) {
-  throw "No se encontro frontend/package.json en $frontend"
+  throw "No se encontro package.json en $frontend"
 }
 if (-not (Test-Path (Join-Path $backend 'app\main.py'))) {
   throw "No se encontro backend/app/main.py en $backend"
 }
 
 $envFiles = @(
+  (Join-Path $root '.env.development'),
   (Join-Path $root '.env'),
   (Join-Path $backend '.env')
 )
 
 $geminiKey = if ($env:GEMINI_API_KEY) { $env:GEMINI_API_KEY } else { Get-EnvValueFromFiles -Key 'GEMINI_API_KEY' -Files $envFiles }
+$supabaseUrl = if ($env:SUPABASE_URL) { $env:SUPABASE_URL } else { Get-EnvValueFromFiles -Key 'SUPABASE_URL' -Files $envFiles }
+$supabaseKey = if ($env:SUPABASE_KEY) { $env:SUPABASE_KEY } else { Get-EnvValueFromFiles -Key 'SUPABASE_KEY' -Files $envFiles }
 
 $backendCmd = "Set-Location '$backend'; "
 if ($geminiKey) {
   $escaped = $geminiKey.Replace("'", "''")
   $backendCmd += "`$env:GEMINI_API_KEY='$escaped'; "
+}
+if ($supabaseUrl) {
+  $backendCmd += "`$env:SUPABASE_URL='$supabaseUrl'; "
+}
+if ($supabaseKey) {
+  $backendCmd += "`$env:SUPABASE_KEY='$supabaseKey'; "
 }
 $backendCmd += "python -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 if ($Reload) { $backendCmd += ' --reload' }

@@ -18,8 +18,6 @@ def create_job(
     aspect_ratio: str,
     image_url: str,
 ) -> str:
-    supabase = get_supabase()
-    
     # 1. Bypass para usuarios sin login ("dev-user")
     if user_id == "dev-user":
         import uuid
@@ -32,6 +30,7 @@ def create_job(
         return job_id
 
     # Crear registro en Supabase
+    supabase = get_supabase()
     job_data = {
         "user_id": user_id,
         "status": JobStatus.PROCESSING,

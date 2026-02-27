@@ -1,60 +1,41 @@
-# Dependencies
-node_modules/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Virtual environments
-venv/
-env/
-.venv/
-ENV/
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
+# testing
+/coverage
 
-# OS files
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-Thumbs.db
+*.pem
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Next.js
-frontend/.next/
-frontend/out/
-frontend/node_modules/
-
-# Python
-backend/__pycache__/
-backend/**/__pycache__/
-*.egg-info/
-dist/
-build/
-
-# Generated files
-backend/static/generated/
-
-# External projects
-mini-ads-builder/
-
-# Logs
-*.log
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.pnpm-debug.log*
 
-# Agent files (development)
-.agent/
-.agents/
-skills-lock.json
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts

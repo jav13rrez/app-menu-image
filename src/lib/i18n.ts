@@ -29,7 +29,7 @@ export const t = {
   },
   canvas: {
     aspectRatio: "Proporción",
-    generatedTexts: "Textos Generados",
+    generatedTexts: "Agrega los Textos Generados",
     headline: "Titular",
     tagline: "Descripción",
     editText: "Editar Texto",

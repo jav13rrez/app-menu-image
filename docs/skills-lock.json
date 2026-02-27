@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "product-designer": {
+      "source": "borghei/claude-skills",
+      "sourceType": "github",
+      "computedHash": "40754c8e04a7d2504f1ac6271d577f7c59dc57eec4a2acc67c30a79dee3d8784"
+    },
+    "senior-architect": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "03f75291acbd3934c4a1d8aa73b24357d74d848fa587bf5d7dc0a90e7437b5b7"
+    },
+    "ui-ux-pro-max": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "computedHash": "ac6e3584c7577be083e8a78289b74ee4d466c5f5472fa096ceb5553519daced5"
+    }
+  }
+}
