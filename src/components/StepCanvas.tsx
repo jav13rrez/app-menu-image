@@ -333,10 +333,10 @@ export default function StepCanvas() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6">
-      <div className="flex-1 flex justify-center items-start">
+      <div className="flex-1 flex justify-center items-start pt-16">
         <div
           ref={containerRef}
-          className="relative border border-gray-700 rounded-xl overflow-hidden bg-gray-900 select-none touch-none"
+          className="relative rounded-xl select-none"
           style={{ width: displayW, height: displayH, touchAction: "none" }}
           onMouseMove={handleMouseMove}
           onTouchMove={handleMouseMove}
@@ -346,13 +346,15 @@ export default function StepCanvas() {
           onTouchCancel={handleMouseUp}
           onClick={handleCanvasClick}
         >
-          {store.generatedImageUrl && (
-            <img
-              src={store.generatedImageUrl}
-              alt="Imagen generada"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            />
-          )}
+          <div className="absolute inset-0 rounded-xl overflow-hidden border border-gray-700 bg-gray-900 pointer-events-none">
+            {store.generatedImageUrl && (
+              <img
+                src={store.generatedImageUrl}
+                alt="Imagen generada"
+                className="w-full h-full object-cover pointer-events-none"
+              />
+            )}
+          </div>
 
           {texts.map((text) => {
             const isSelected = selectedId === text.id;
@@ -398,7 +400,14 @@ export default function StepCanvas() {
                   )}
 
                   <div
-                    className="text-center px-2"
+                    contentEditable={isSelected}
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      // Solo actualizamos el estado al salir (onBlur) para no causar re-renders molestos del cursor
+                      const newContent = e.currentTarget.textContent?.trim();
+                      if (newContent) updateText(text.id, { content: newContent });
+                    }}
+                    className={`text-center px-2 cursor-text ${isSelected ? "focus:outline-none focus:ring-2 focus:ring-amber-500/50 rounded" : ""}`}
                     style={{
                       fontSize: `${text.fontSize * scale}px`,
                       fontFamily: `"${text.fontFamily}", sans-serif`,
@@ -408,18 +417,69 @@ export default function StepCanvas() {
                       lineHeight: 1.2,
                       wordWrap: "break-word",
                       overflowWrap: "break-word",
+                      minWidth: "2em",
+                      minHeight: "1.2em",
                     }}
                   >
                     {text.content}
                   </div>
 
                   {isSelected && (
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 rounded-lg px-3 py-1.5 text-xs text-white flex items-center gap-2 whitespace-nowrap shadow-lg">
-                      <Move className="w-3 h-3" />
-                      <span>{t.canvas.dragHint}</span>
-                      <span className="text-amber-400 ml-1">|</span>
-                      <GripVertical className="w-3 h-3 text-amber-400" />
-                      <span className="text-amber-400">{Math.round(text.maxWidth)}%</span>
+                    <div
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 bg-gray-900 border border-gray-700 rounded-xl p-3 shadow-2xl flex flex-col gap-3 z-50 pointer-events-auto min-w-[300px]"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <select
+                          value={text.fontFamily}
+                          onChange={(e) => updateText(text.id, { fontFamily: e.target.value })}
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer w-[100px]"
+                        >
+                          {FONTS.map((font) => (
+                            <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>{font.family}</option>
+                          ))}
+                        </select>
+
+                        <div className="flex items-center bg-gray-800 rounded border border-gray-700">
+                          <button onClick={() => updateText(text.id, { fontSize: Math.max(16, text.fontSize - 4) })} className="px-2 py-1 text-gray-400 hover:text-white cursor-pointer active:bg-gray-700 rounded-l">-</button>
+                          <span className="text-xs text-white w-6 text-center select-none">{text.fontSize}</span>
+                          <button onClick={() => updateText(text.id, { fontSize: Math.min(96, text.fontSize + 4) })} className="px-2 py-1 text-gray-400 hover:text-white cursor-pointer active:bg-gray-700 rounded-r">+</button>
+                        </div>
+
+                        <input
+                          type="color"
+                          value={text.color}
+                          onChange={(e) => updateText(text.id, { color: e.target.value })}
+                          className="w-8 h-8 rounded cursor-pointer bg-transparent border-0 p-0"
+                        />
+
+                        <button onClick={(e) => { e.stopPropagation(); removeText(text.id); }} className="p-1.5 text-red-500 hover:bg-red-500/10 rounded cursor-pointer">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 border-t border-gray-800 pt-3">
+                        <span className="text-[10px] text-gray-500 uppercase font-semibold">{t.canvas.shadow}</span>
+                        <select
+                          value={text.shadowPreset}
+                          onChange={(e) => updateText(text.id, { shadowPreset: e.target.value as ShadowPreset })}
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 mx-1"
+                        >
+                          {(Object.keys(SHADOW_PRESETS) as ShadowPreset[]).map((preset) => (
+                            <option key={preset} value={preset}>{SHADOW_LABELS[preset]}</option>
+                          ))}
+                        </select>
+
+                        <input
+                          type="color"
+                          value={text.shadowColor}
+                          onChange={(e) => updateText(text.id, { shadowColor: e.target.value })}
+                          disabled={text.shadowPreset === "none" || text.shadowPreset === "glow"}
+                          className="w-7 h-7 rounded cursor-pointer bg-transparent border-0 p-0 disabled:opacity-30"
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -488,108 +548,7 @@ export default function StepCanvas() {
           </div>
         </div>
 
-        {selectedText && (
-          <div className="bg-gray-800/50 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                {t.canvas.editText}
-              </h3>
-              <button
-                onClick={() => removeText(selectedText.id)}
-                className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
-                aria-label={t.canvas.removeText}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Texto</label>
-              <textarea
-                value={selectedText.content}
-                onChange={(e) => updateText(selectedText.id, { content: e.target.value })}
-                rows={2}
-                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">{t.canvas.fontSize}</label>
-              <input
-                type="range"
-                min="16"
-                max="96"
-                value={selectedText.fontSize}
-                onChange={(e) => updateText(selectedText.id, { fontSize: Number(e.target.value) })}
-                className="w-full accent-amber-500"
-              />
-              <div className="text-xs text-gray-500 text-center">{selectedText.fontSize}px</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t.canvas.fontFamily}</label>
-                <select
-                  value={selectedText.fontFamily}
-                  onChange={(e) => updateText(selectedText.id, { fontFamily: e.target.value })}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                >
-                  {FONTS.map((font) => (
-                    <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>
-                      {font.family}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t.canvas.shadow}</label>
-                <select
-                  value={selectedText.shadowPreset}
-                  onChange={(e) => updateText(selectedText.id, { shadowPreset: e.target.value as ShadowPreset })}
-                  className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
-                >
-                  {(Object.keys(SHADOW_PRESETS) as ShadowPreset[]).map((preset) => (
-                    <option key={preset} value={preset}>
-                      {SHADOW_LABELS[preset]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t.canvas.textColor}</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={selectedText.color}
-                    onChange={(e) => updateText(selectedText.id, { color: e.target.value })}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border border-gray-700 p-1"
-                  />
-                  <span className="text-xs text-gray-500 font-mono">{selectedText.color}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">{t.canvas.shadowColor}</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={selectedText.shadowColor}
-                    onChange={(e) => updateText(selectedText.id, { shadowColor: e.target.value })}
-                    disabled={selectedText.shadowPreset === "none" || selectedText.shadowPreset === "glow"}
-                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border border-gray-700 p-1 disabled:opacity-40 disabled:cursor-not-allowed"
-                  />
-                  <span className="text-xs text-gray-500 font-mono">
-                    {selectedText.shadowPreset === "glow" ? "auto" : selectedText.shadowColor}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Los controles flotantes ahora manejan la edición. Hemos retirado el panel lateral de edición clásico. */}
 
         <div className="mt-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
