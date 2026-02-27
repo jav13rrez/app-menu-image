@@ -1,26 +1,41 @@
 export interface FontConfig {
   family: string;
-  file?: string;
-  type: "local" | "google";
-  weight?: number;
+  type: "google";
+  weights?: number[];
 }
 
 export const FONTS: FontConfig[] = [
-  { family: "Anton", file: "/fonts/Anton-Regular.ttf", type: "local", weight: 400 },
-  { family: "Gorgeous", file: "/fonts/Gorgeous-Bold.ttf", type: "local", weight: 700 },
-  { family: "Lorida", file: "/fonts/Lorida.ttf", type: "local", weight: 400 },
-  { family: "Morganite", file: "/fonts/Morganite-SemiBold.ttf", type: "local", weight: 600 },
-  { family: "Montserrat", type: "google", weight: 700 },
-  { family: "Playfair Display", type: "google", weight: 700 },
-  { family: "Oswald", type: "google", weight: 500 },
-  { family: "Bebas Neue", type: "google", weight: 400 },
-  { family: "Roboto", type: "google", weight: 700 },
-  { family: "Open Sans", type: "google", weight: 700 },
+  // --- TÍTULOS CONDENSADOS / ELEGANTES ---
+  { family: "Bebas Neue", type: "google", weights: [400] },
+  { family: "Oswald", type: "google", weights: [300, 400, 500, 600, 700] },
+  { family: "Fjalla One", type: "google", weights: [400] },
+
+  // --- TÍTULOS ELEGANTES / GOURMET (Serif) ---
+  { family: "Playfair Display", type: "google", weights: [400, 600, 800, 900] },
+  { family: "Cormorant Garamond", type: "google", weights: [400, 600, 700] },
+
+  // --- CASUAL / STREET FOOD (Burguer, Kebab) ---
+  { family: "Anton", type: "google", weights: [400] },
+  { family: "Permanent Marker", type: "google", weights: [400] },
+  { family: "Caveat", type: "google", weights: [400, 700] },
+
+  // --- DESCRIPCIONES ALTAMENTE LEGIBLES ---
+  { family: "Montserrat", type: "google", weights: [300, 400, 500, 600, 700, 800] },
+  { family: "Open Sans", type: "google", weights: [300, 400, 600, 700, 800] },
 ];
 
-export const LOCAL_FONTS = FONTS.filter((f) => f.type === "local");
-export const GOOGLE_FONTS = FONTS.filter((f) => f.type === "google");
+export const GOOGLE_FONTS = FONTS;
 
-export const GOOGLE_FONTS_URL = `https://fonts.googleapis.com/css2?family=${GOOGLE_FONTS.map(
-  (f) => `${f.family.replace(/ /g, "+")}:wght@${f.weight || 400}`
-).join("&family=")}&display=swap`;
+export const GOOGLE_FONTS_URL = `https://fonts.googleapis.com/css2?${GOOGLE_FONTS.map(
+  (f) => {
+    const family = f.family.replace(/ /g, "+");
+    if (f.weights && f.weights.length > 0) {
+      if (f.weights.length === 1 && f.weights[0] === 400) {
+        // Google Fonts a veces asume 400 por defecto de forma más limpia en fonts de weight único
+        return `family=${family}`;
+      }
+      return `family=${family}:wght@${f.weights.join(";")}`;
+    }
+    return `family=${family}`;
+  }
+).join("&")}&display=swap`;
