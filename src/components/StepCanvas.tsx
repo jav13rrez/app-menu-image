@@ -328,9 +328,25 @@ export default function StepCanvas() {
   const fullText = [store.generatedCopy || "", store.generatedHashtags.join(" ")].join("\n\n");
 
   const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(fullText);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(fullText);
+      } else {
+        // Fallback for non-secure contexts (like iOS Safari testing locally without HTTPS)
+        const textArea = document.createElement("textarea");
+        textArea.value = fullText;
+        textArea.style.position = "absolute";
+        textArea.style.left = "-999999px";
+        document.body.prepend(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.warn("Failed to copy text: ", e);
+    }
   };
 
   return (
@@ -383,8 +399,8 @@ export default function StepCanvas() {
                     <>
                       {/* Drag Handle Indicator */}
                       <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 h-6 flex items-center justify-center bg-gray-900 border border-amber-500/50 rounded-t-md text-amber-500/80 shadow-lg pointer-events-none">
-                        <GripVertical className="w-3 h-3" />
-                        <span className="text-[10px] uppercase font-bold tracking-wider ml-1">Mover</span>
+                        <GripVertical className="w-3.5 h-3.5" />
+                        <span className="text-xs uppercase font-bold tracking-wider ml-1">Mover</span>
                       </div>
 
                       <div
@@ -453,7 +469,7 @@ export default function StepCanvas() {
                         <select
                           value={text.fontFamily}
                           onChange={(e) => updateText(text.id, { fontFamily: e.target.value })}
-                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 min-w-[90px]"
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 min-w-[90px] [color-scheme:dark]"
                         >
                           {FONTS.map((font) => (
                             <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>{font.family}</option>
@@ -463,7 +479,7 @@ export default function StepCanvas() {
                         <select
                           value={text.fontWeight}
                           onChange={(e) => updateText(text.id, { fontWeight: e.target.value })}
-                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer w-[75px]"
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer w-[75px] [color-scheme:dark]"
                         >
                           <option value="300">Light</option>
                           <option value="400">Regular</option>
@@ -508,7 +524,7 @@ export default function StepCanvas() {
                         <select
                           value={text.shadowPreset}
                           onChange={(e) => updateText(text.id, { shadowPreset: e.target.value as ShadowPreset })}
-                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 mx-1"
+                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 mx-1 [color-scheme:dark]"
                         >
                           {(Object.keys(SHADOW_PRESETS) as ShadowPreset[]).map((preset) => (
                             <option key={preset} value={preset}>{SHADOW_LABELS[preset]}</option>
@@ -596,8 +612,8 @@ export default function StepCanvas() {
         {/* Los controles flotantes ahora manejan la edición. Hemos retirado el panel lateral de edición clásico. */}
 
         <div className="mt-2">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            {t.canvas.caption}
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block">
+            {t.canvas.caption} <span className="text-[10px] text-amber-500/80 normal-case ml-1 tracking-normal font-medium">(Copia y Guarda si no vas a publicar ahora)</span>
           </label>
           <div className="relative mt-2">
             <textarea

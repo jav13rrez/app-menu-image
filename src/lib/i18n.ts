@@ -43,7 +43,7 @@ export const t = {
       "Componiendo la toma perfecta...",
       "Añadiendo los toques finales...",
     ],
-    estimate: "Esto suele tardar 10-15 segundos",
+    estimate: "Esto suele tardar 20-40 segundos",
     tryAgain: "Reintentar",
   },
   canvas: {
