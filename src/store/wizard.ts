@@ -10,6 +10,9 @@ export interface WizardState {
   selectedStyleId: string;
   selectedNarrative: string;
   selectedAspectRatio: AspectRatio;
+  businessName: string;
+  location: string;
+  postContext: string;
   generatedImageUrl: string | null;
   generatedCopy: string | null;
   generatedHashtags: string[];
@@ -24,6 +27,9 @@ export interface WizardState {
   setStyle: (styleId: string) => void;
   setNarrative: (narrative: string) => void;
   setAspectRatio: (ratio: AspectRatio) => void;
+  setBusinessName: (name: string) => void;
+  setLocation: (loc: string) => void;
+  setPostContext: (context: string) => void;
   setGenerationResult: (imageUrl: string, copy: string, hashtags: string[], headline: string, tagline: string) => void;
   setGenerating: (generating: boolean) => void;
   setJobId: (jobId: string) => void;
@@ -38,6 +44,9 @@ const initialState = {
   selectedStyleId: "",
   selectedNarrative: "",
   selectedAspectRatio: "1:1" as AspectRatio,
+  businessName: "",
+  location: "",
+  postContext: "",
   generatedImageUrl: null,
   generatedCopy: null,
   generatedHashtags: [],
@@ -58,6 +67,9 @@ export const useWizardStore = create<WizardState>()(
       setStyle: (styleId) => set({ selectedStyleId: styleId }),
       setNarrative: (narrative) => set({ selectedNarrative: narrative }),
       setAspectRatio: (ratio) => set({ selectedAspectRatio: ratio }),
+      setBusinessName: (name) => set({ businessName: name }),
+      setLocation: (loc) => set({ location: loc }),
+      setPostContext: (ctx) => set({ postContext: ctx }),
       setGenerationResult: (imageUrl, copy, hashtags, headline, tagline) =>
         set({
           generatedImageUrl: imageUrl,
@@ -66,7 +78,7 @@ export const useWizardStore = create<WizardState>()(
           generatedHeadline: headline,
           generatedTagline: tagline,
           isGenerating: false,
-          currentStep: 3,
+          currentStep: 4, // Ahora sube un paso, el Canvas será el step 4
         }),
       setGenerating: (generating) => set({ isGenerating: generating }),
       setJobId: (jobId) => set({ jobId }),
@@ -81,6 +93,9 @@ export const useWizardStore = create<WizardState>()(
         selectedStyleId: state.selectedStyleId,
         selectedNarrative: state.selectedNarrative,
         selectedAspectRatio: state.selectedAspectRatio,
+        businessName: state.businessName,
+        location: state.location,
+        postContext: state.postContext,
         generatedImageUrl: state.generatedImageUrl,
         generatedCopy: state.generatedCopy,
         generatedHashtags: state.generatedHashtags,

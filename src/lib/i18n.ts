@@ -1,6 +1,6 @@
 export const t = {
   appName: "FoodSocial AI",
-  steps: ["Subir", "Estilo", "Generar", "Exportar"],
+  steps: ["Subir", "Estilo", "Mensaje", "Generar", "Exportar"],
   upload: {
     title: "Sube Tu Foto",
     subtitle: "Toma una foto de tu plato -- incluso con mala luz. Lo transformaremos.",
@@ -16,6 +16,25 @@ export const t = {
     narrativeSubtitle: "Añade un elemento humano a la escena",
     formatTitle: "Formato de Imagen",
     formatSubtitle: "Elige la proporción de la imagen generada",
+  },
+  context: {
+    title: "Personaliza el Mensaje",
+    subtitle: "Danos contexto para crear tus textos y hashtags (Opcional)",
+    businessName: "Nombre de tu negocio",
+    businessNamePlace: "Ej: La Brasa Burger",
+    location: "Población y Provincia",
+    locationPlace: "Ej: Valencia, España",
+    postContext: "Motivo de la publicación",
+    postContextPlace: "Ej: Fiestas locales, o menú de hoy...",
+    presets: {
+      none: "Selecciona un motivo (Opcional)",
+      weekend: "¡Menú especial fin de semana!",
+      today: "¡Menú u Oferta de hoy!",
+      chef: "El Chef se ha salido hoy con esta elaboración",
+      party: "¡Fiesta / Evento especial en el local!",
+      valentine: "Día de los Enamorados",
+    },
+    customContext: "Otro (escribe tu propio motivo)",
   },
   loading: {
     messages: [

@@ -17,6 +17,9 @@ def create_job(
     narrative: str,
     aspect_ratio: str,
     image_url: str,
+    business_name: str | None = None,
+    location: str | None = None,
+    post_context: str | None = None,
 ) -> str:
     # 1. Bypass para usuarios sin login ("dev-user")
     if user_id == "dev-user":
@@ -26,7 +29,7 @@ def create_job(
         if USE_MOCK:
             asyncio.create_task(_process_job_mock(job_id))
         else:
-            asyncio.create_task(_process_job_no_db(job_id, user_id, style_id, narrative, aspect_ratio, image_url))
+            asyncio.create_task(_process_job_no_db(job_id, user_id, style_id, narrative, aspect_ratio, image_url, business_name, location, post_context))
         return job_id
 
     # Crear registro en Supabase
@@ -37,7 +40,10 @@ def create_job(
         "style_id": style_id,
         "narrative": narrative,
         "aspect_ratio": aspect_ratio,
-        "input_image_url": image_url
+        "input_image_url": image_url,
+        "business_name": business_name,
+        "location": location,
+        "post_context": post_context
     }
     
     response = supabase.table("jobs").insert(job_data).execute()
@@ -76,7 +82,12 @@ async def _process_job(job_id: str):
         # y obtendrías una URL pública.
         
         # 5. Generar Copy
-        caption_data = await generate_caption(generated_bytes)
+        caption_data = await generate_caption(
+            image_bytes=generated_bytes,
+            business_name=job.get("business_name"),
+            location=job.get("location"),
+            post_context=job.get("post_context")
+        )
 
         import base64
         base64_image = base64.b64encode(generated_bytes).decode('utf-8')
@@ -105,12 +116,17 @@ async def _process_job(job_id: str):
 
 jobs_store = {}
 
-async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative: str, aspect_ratio: str, image_url: str):
+async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative: str, aspect_ratio: str, image_url: str, business_name: str | None = None, location: str | None = None, post_context: str | None = None):
     jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": user_id, "result": None, "error": None}
     try:
         image_bytes = await _download_image(image_url)
         generated_bytes = await generate_food_image(image_bytes=image_bytes, style_id=style_id, narrative=narrative, aspect_ratio=aspect_ratio)
-        caption_data = await generate_caption(generated_bytes)
+        caption_data = await generate_caption(
+            image_bytes=generated_bytes,
+            business_name=business_name,
+            location=location,
+            post_context=post_context
+        )
         
         import base64
         base64_image = base64.b64encode(generated_bytes).decode('utf-8')

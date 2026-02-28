@@ -11,6 +11,9 @@ export interface GenerateRequest {
   style_id: string;
   narrative: string;
   aspect_ratio: string;
+  business_name?: string;
+  location?: string;
+  post_context?: string;
 }
 
 export interface GenerateResponse {

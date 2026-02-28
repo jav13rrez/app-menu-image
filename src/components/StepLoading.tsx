@@ -97,6 +97,9 @@ export default function StepLoading() {
           style_id: state.selectedStyleId,
           narrative: state.selectedNarrative || "none",
           aspect_ratio: state.selectedAspectRatio,
+          business_name: state.businessName || undefined,
+          location: state.location || undefined,
+          post_context: state.postContext || undefined,
         });
 
         if (cancelledRef.current) return;

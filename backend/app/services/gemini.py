@@ -41,16 +41,40 @@ async def generate_food_image(
     raise RuntimeError("Gemini no devolvió una imagen")
 
 
-async def generate_caption(image_bytes: bytes) -> dict:
+async def generate_caption(
+    image_bytes: bytes,
+    business_name: str | None = None,
+    location: str | None = None,
+    post_context: str | None = None,
+) -> dict:
     if not client:
         raise RuntimeError("API key de Gemini no configurada")
 
+    context_prompt = ""
+    if business_name or location or post_context:
+        context_prompt += "CONTEXTO DEL NEGOCIO Y LA PUBLICACIÓN:\n"
+        if business_name:
+            context_prompt += f"- Nombre del negocio: {business_name}\n"
+        if location:
+            context_prompt += f"- Ubicación: {location}\n"
+        if post_context:
+            context_prompt += f"- Motivo de la publicación: {post_context}\n"
+            
+        context_prompt += (
+            "INSTRUCCIONES ESTRICTAS BASADAS EN EL CONTEXTO:\n"
+            "1. Si hay un Nombre del negocio, úsalo de forma natural en el caption, headline o tagline.\n"
+            "2. Si hay un Nombre del negocio o Ubicación, incluye hashtags obligatorios "
+            "(ej. si se llama 'La Tagliatella' y está en 'Madrid', añade #LaTagliatella #Madrid #FoodieMadrid).\n"
+            "3. Adapta el tono y contenido del texto al 'Motivo de la publicación' si se proporciona. Siempre dale un tono persuasivo relacionado con la Gastronomía.\n"
+        )
+
     prompt = (
         "Analiza esta imagen de comida. Genera:\n"
-        "1. Un caption emotivo para redes sociales (2-3 frases)\n"
+        "1. Un caption emotivo y persuasivo gastronómico para redes sociales (2-3 frases)\n"
         "2. 5-7 hashtags relevantes\n"
         "3. Un headline impactante de 2-5 palabras (estilo título grande H2)\n"
         "4. Un tagline descriptivo de 7-15 palabras (frase promocional)\n\n"
+        f"{context_prompt}\n"
         "IMPORTANTE: Responde ÚNICAMENTE en ESPAÑOL.\n"
         "Devuelve SOLO JSON válido con este formato exacto, sin texto adicional:\n"
         '{"caption": "...", "hashtags": ["#..."], "headline": "...", "tagline": "..."}'

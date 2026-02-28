@@ -29,6 +29,9 @@ async def generate_image(
             narrative=req.narrative,
             aspect_ratio=req.aspect_ratio.value,
             image_url=req.image_url,
+            business_name=req.business_name,
+            location=req.location,
+            post_context=req.post_context,
         )
     except Exception as e:
         import traceback

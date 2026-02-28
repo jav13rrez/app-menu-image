@@ -37,6 +37,9 @@ create table if not exists public.jobs (
   aspect_ratio text,
   input_image_url text not null,
   output_image_url text,
+  business_name text,
+  location text,
+  post_context text,
   result_data jsonb, -- Almacena copy, hashtags, etc.
   error_message text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
