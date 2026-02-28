@@ -339,7 +339,7 @@ export default function StepCanvas() {
         <div
           ref={containerRef}
           className="relative rounded-xl select-none"
-          style={{ width: displayW, height: displayH, touchAction: "none" }}
+          style={{ width: displayW, height: displayH }}
           onMouseMove={handleMouseMove}
           onTouchMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -377,15 +377,26 @@ export default function StepCanvas() {
                     }`}
                   onMouseDown={(e) => handleMoveStart(e, text.id)}
                   onTouchStart={(e) => handleMoveStart(e, text.id)}
+                  style={{ touchAction: "none" }}
                 >
                   {isSelected && (
                     <>
+                      {/* Drag Handle Indicator */}
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 px-2 h-6 flex items-center justify-center bg-gray-900 border border-amber-500/50 rounded-t-md text-amber-500/80 shadow-lg pointer-events-none">
+                        <GripVertical className="w-3 h-3" />
+                        <span className="text-[10px] uppercase font-bold tracking-wider ml-1">Mover</span>
+                      </div>
+
                       <div
                         className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center cursor-ew-resize z-10 group/handle"
                         onMouseDown={(e) => handleResizeStart(e, text.id, "left")}
                         onTouchStart={(e) => handleResizeStart(e, text.id, "left")}
                       >
-                        <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg" />
+                        <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg overflow-hidden flex flex-col justify-center items-center">
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                        </div>
                       </div>
 
                       <div
@@ -393,7 +404,11 @@ export default function StepCanvas() {
                         onMouseDown={(e) => handleResizeStart(e, text.id, "right")}
                         onTouchStart={(e) => handleResizeStart(e, text.id, "right")}
                       >
-                        <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg" />
+                        <div className="w-1.5 h-10 bg-amber-500 rounded-full opacity-80 hover:opacity-100 hover:w-2 transition-all shadow-lg overflow-hidden flex flex-col justify-center items-center">
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                          <div className="w-1 h-1 bg-black/30 rounded-full my-0.5" />
+                        </div>
                       </div>
 
                       <div className="absolute inset-0 border-2 border-amber-500 rounded-lg pointer-events-none"
