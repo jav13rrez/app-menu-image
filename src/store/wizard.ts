@@ -21,6 +21,7 @@ export interface WizardState {
   isGenerating: boolean;
   jobId: string | null;
   error: string | null;
+  selectedContextPhotoId: string | null;
 
   setStep: (step: number) => void;
   setImage: (file: File, preview: string) => void;
@@ -34,6 +35,7 @@ export interface WizardState {
   setGenerating: (generating: boolean) => void;
   setJobId: (jobId: string) => void;
   setError: (error: string | null) => void;
+  setSelectedContextPhotoId: (id: string | null) => void;
   reset: () => void;
 }
 
@@ -55,6 +57,7 @@ const initialState = {
   isGenerating: false,
   jobId: null,
   error: null,
+  selectedContextPhotoId: null,
 };
 
 export const useWizardStore = create<WizardState>()(
@@ -83,6 +86,7 @@ export const useWizardStore = create<WizardState>()(
       setGenerating: (generating) => set({ isGenerating: generating }),
       setJobId: (jobId) => set({ jobId }),
       setError: (error) => set({ error, isGenerating: false }),
+      setSelectedContextPhotoId: (id) => set({ selectedContextPhotoId: id }),
       reset: () => set(initialState),
     }),
     {
@@ -101,6 +105,7 @@ export const useWizardStore = create<WizardState>()(
         generatedHashtags: state.generatedHashtags,
         generatedHeadline: state.generatedHeadline,
         generatedTagline: state.generatedTagline,
+        selectedContextPhotoId: state.selectedContextPhotoId,
       }),
     }
   )

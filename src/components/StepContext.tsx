@@ -3,6 +3,7 @@
 import { useWizardStore } from "@/store/wizard";
 import { t } from "@/lib/i18n";
 import { useState } from "react";
+import ContextPhotoPicker from "@/components/ContextPhotoPicker";
 
 export default function StepContext() {
     const businessName = useWizardStore((s) => s.businessName);
@@ -31,6 +32,13 @@ export default function StepContext() {
             <div>
                 <h2 className="text-2xl font-bold mb-2">{t.context.title}</h2>
                 <p className="text-gray-400 mb-6">{t.context.subtitle}</p>
+
+                {/* Context Photo Picker — "Mis Espacios" */}
+                <div className="mb-6">
+                    <ContextPhotoPicker />
+                </div>
+
+                <div className="h-px bg-[var(--fs-border)] my-6" />
 
                 <div className="space-y-6">
                     {/* Business Name */}
