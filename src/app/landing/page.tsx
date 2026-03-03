@@ -76,7 +76,7 @@ const COMPARISON: ComparisonRow[] = [
 ];
 
 const WHAT_INCLUDES = [
-    "40 generaciones de imagen profesional con IA",
+    "20 publicaciones profesionales (40 créditos)",
     "Titular + subtítulo + caption + hashtags automáticos",
     "6 estilos de fotografía gastronómica profesional",
     "Editor de texto flotante sobre la imagen",
@@ -157,7 +157,7 @@ export default function LandingPage() {
             {/* ── TOP URGENCY BAR ── */}
             <div className="bg-[#ea580c] text-white text-center text-sm font-medium py-2 px-4">
                 <span className="font-bold">Oferta de lanzamiento</span>
-                {" · "}40 publicaciones profesionales por solo
+                {" · "}20 publicaciones profesionales por solo
                 {" "}
                 <span className="font-bold underline">5€</span>
                 {" · "}
@@ -234,7 +234,7 @@ export default function LandingPage() {
                 {/* CTA */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
                     <CTAButton
-                        label="Quiero mis 40 publicaciones por 5€"
+                        label="Quiero mis 20 publicaciones por 5€"
                         sub="Pago único · Sin suscripción · Acceso inmediato"
                     />
                 </div>
@@ -523,8 +523,9 @@ export default function LandingPage() {
                                 </div>
 
                                 <h2 className="font-heading text-3xl sm:text-4xl font-bold mb-2">
-                                    40 generaciones completas
+                                    20 publicaciones completas
                                 </h2>
+                                <p className="text-[#555] text-xs mb-3 -mt-1">(40 créditos · 2 créditos por publicación)</p>
                                 <div className="flex items-baseline justify-center gap-3 mb-2">
                                     <span className="font-heading text-6xl sm:text-7xl font-bold text-[#ea580c]">5€</span>
                                     <div className="text-left">
@@ -601,7 +602,7 @@ export default function LandingPage() {
                         </h2>
                         <div className="flex justify-center mb-6">
                             <CTAButton
-                                label="Quiero mis 40 generaciones por 5€"
+                                label="Quiero mis 20 publicaciones por 5€"
                                 sub="Acceso inmediato · Sin suscripción"
                             />
                         </div>
