@@ -85,7 +85,7 @@ create table if not exists public.credit_transactions (
   amount int not null,                          -- positive = purchased/refunded, negative = consumed
   balance_after int not null,                   -- snapshot after this transaction
   type text not null
-    check (type in ('purchase','generation','refund','bonus','admin_adjustment')),
+    check (type in ('purchase','generation','context_upload','refund','bonus','admin_adjustment')),
   reference_id text,                            -- job_id, stripe_payment_intent_id, etc.
   description text,
   created_at timestamptz default now()
@@ -98,12 +98,53 @@ create policy "Users can view own transactions" on public.credit_transactions
   for select using (auth.uid() = user_id);
 ```
 
-### 3.4 `profiles` — Modifications
+### 3.4 `context_photos` — Saved Restaurant Background Images
+Users can save up to 10 interior/ambiance photos that persist across sessions and serve as backgrounds for AI generation. Each upload+analysis costs 2 credits (1+1).
+
+```sql
+create table if not exists public.context_photos (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users on delete cascade not null,
+  image_url text not null,                -- Supabase Storage public URL
+  thumbnail_url text,                     -- Smaller preview for the picker grid
+  ai_description text,                    -- AI-generated description of the scene (used in prompt enrichment)
+  label text,                             -- User-defined label, e.g. "Terraza noche", "Barra principal"
+  sort_order int not null default 0,
+  created_at timestamptz default now()
+);
+
+-- Max 10 photos per user enforced at application level (not DB constraint)
+create index idx_context_photos_user on public.context_photos(user_id, sort_order);
+
+alter table public.context_photos enable row level security;
+
+create policy "Users can view own context photos" on public.context_photos
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own context photos" on public.context_photos
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can delete own context photos" on public.context_photos
+  for delete using (auth.uid() = user_id);
+
+create policy "Users can update own context photos" on public.context_photos
+  for update using (auth.uid() = user_id);
+```
+
+### 3.5 `profiles` — Modifications
 Add Stripe customer reference. Keep `quota_remaining` temporarily for backward compat.
 
 ```sql
 alter table public.profiles
   add column if not exists stripe_customer_id text;
+```
+
+### 3.6 `jobs` — Add Context Photo Reference
+Link a generation job to the context photo used (if any).
+
+```sql
+alter table public.jobs
+  add column if not exists context_photo_id uuid references public.context_photos(id);
 ```
 
 ---
@@ -190,8 +231,8 @@ $$ language plpgsql security definer;
 ---
 
 ## 6. Migration Strategy
-1. **Phase 1:** Create new tables (`credit_packs`, `credit_balances`, `credit_transactions`) — zero impact.
-2. **Phase 2:** Add `stripe_customer_id` to `profiles`.
+1. **Phase 1:** Create new tables (`credit_packs`, `credit_balances`, `credit_transactions`, `context_photos`) — zero impact.
+2. **Phase 2:** Add `stripe_customer_id` to `profiles`, add `context_photo_id` to `jobs`.
 3. **Phase 3:** Update `auth.py` to read from `credit_balances`.
 4. **Phase 4:** Grant existing users a welcome bonus (e.g., 10 free credits) and deprecate `profiles.quota_remaining`.
 
@@ -203,4 +244,6 @@ $$ language plpgsql security definer;
 - [ ] `add_purchased_credits()` correctly increments balance and logs the transaction
 - [ ] `credit_transactions` provides a complete audit trail
 - [ ] Seed data for 3 credit packs inserted
+- [ ] `context_photos` table supports CRUD with RLS per user
+- [ ] Max 10 context photos enforced at app level
 - [ ] Zero breaking changes to existing `jobs` or `profiles` queries
