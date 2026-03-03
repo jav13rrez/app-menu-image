@@ -12,6 +12,7 @@ This TSD covers all frontend changes to support the prepaid credit model:
 - Auth-gated "Buy Credits" page (Replicate-style).
 - Real-time credit balance display.
 - Credit exhaustion handling and prompts to buy more.
+- **Context Photo Library** — persistent saved restaurant photos for AI backgrounds.
 
 ---
 
@@ -188,22 +189,104 @@ When `creditsRemaining < 2` and user clicks "Generate":
 
 ---
 
-## 6. Wizard Flow Changes
+## 6. Context Photo Library ("Mis Espacios")
 
-### 6.1 Pre-Generation Credit Check (UX Guard)
+### 6.1 Concept
+Restaurant owners have special corners, tables, and walls they're proud of. These photos serve as **backgrounds for AI-generated images**, making each publication feel authentic and unique to their space.
+
+Photos are uploaded once, analyzed by AI (which generates a scene description for prompt enrichment), and persist across sessions so users never have to re-upload.
+
+### 6.2 Credit Cost
+| Action | Credits |
+|--------|:-------:|
+| Upload photo | 1 |
+| AI scene analysis | 1 |
+| **Total per new context photo** | **2** |
+
+Selecting a previously saved photo for a generation costs **0 credits** — only the initial upload+analysis is charged.
+
+### 6.3 Placement in Wizard — StepContext Enhancement
+The context photo picker is added as a new section **within the existing Step 3 (Context)**:
+
+```
+┌──────────────────────────────────────────────┐
+│ 📸 Agrega Contexto                           │
+│ (La fotografía que elijas servirá de fondo    │
+│  de la imagen final. Puede ser un rincón     │
+│  especial de tu local u otra imagen)          │
+├──────────────────────────────────────────────┤
+│                                              │
+│ Mis Espacios guardados (3/10)                │
+│ ┌───┐ ┌───┐ ┌───┐ ┌─ ─ ─┐                  │
+│ │ 📷│ │ 📷│ │ 📷│ │  +  │  ← Upload new    │
+│ │✓  │ │   │ │   │ │     │                    │
+│ └───┘ └───┘ └───┘ └─ ─ ─┘                   │
+│ "Terraza" "Barra" "Salón"                    │
+│                                              │
+│ ── o generar sin fondo de contexto ──        │
+│                                              │
+│ [Nombre del negocio]  ← existing fields      │
+│ [Ubicación]                                  │
+│ [Contexto del post]                          │
+└──────────────────────────────────────────────┘
+```
+
+### 6.4 Upload Flow
+1. User clicks **"+"** → file picker opens.
+2. Image uploaded to Supabase Storage → `POST /api/v1/context-photos`.
+3. Backend deducts 2 credits (1 upload + 1 AI analysis).
+4. AI generates a scene description (e.g., "Mesa de madera rústica junto a una ventana con vista al jardín, iluminación cálida de atardecer").
+5. Photo thumbnail + label appear in the grid.
+6. Toast: "📷 Espacio guardado — 2 créditos usados".
+
+### 6.5 Selection Flow
+1. User clicks a saved photo → amber border highlight + checkmark.
+2. The `context_photo_id` is stored in the wizard state.
+3. On generation, this ID is sent with the request → backend uses the `ai_description` as part of the prompt.
+4. **Cost: 0 credits** (already paid on upload).
+
+### 6.6 Management
+- **Label editing:** Tap the label text below each thumbnail to rename.
+- **Delete:** Long press (mobile) or hover → trash icon (desktop). Confirmation modal.
+- **Limit:** 10 photos max. When at 10, the "+" button is disabled with tooltip "Máximo 10 espacios. Elimina uno para añadir otro."
+
+### 6.7 Zustand Store Extension
+
+```typescript
+// store/wizard.ts (extended)
+interface ContextPhoto {
+  id: string;
+  imageUrl: string;
+  thumbnailUrl: string;
+  label: string;
+  aiDescription: string;
+}
+
+// Add to WizardState
+contextPhotos: ContextPhoto[];         // loaded from API on mount
+selectedContextPhotoId: string | null;
+fetchContextPhotos: () => Promise<void>;
+setSelectedContextPhoto: (id: string | null) => void;
+```
+
+---
+
+## 7. Wizard Flow Changes
+
+### 7.1 Pre-Generation Credit Check (UX Guard)
 Before submitting to `/api/v1/generate`:
 1. Check `billingStore.creditsRemaining >= 2`.
 2. If insufficient → show Zero-Credits Modal.
 3. If sufficient → proceed (backend enforces the real check).
 
-### 6.2 Post-Generation
+### 7.2 Post-Generation
 After `job.status === 'completed'`:
 - `billingStore.decrementCredits(2)` optimistically.
 - On next API call, re-sync from `GET /billing/balance`.
 
 ---
 
-## 7. Welcome Bonus Flow
+## 8. Welcome Bonus Flow
 New users get **10 free credits** (5 generations to try the product).
 
 After signup:
@@ -224,16 +307,17 @@ After signup:
 
 ---
 
-## 8. Design Standards
+## 9. Design Standards
 - **Dark Mode first** (consistent with current app).
 - **Credit pack cards:** Glassmorphism border, amber accent on selected pack.
+- **Context photo grid:** Rounded thumbnails, amber border on selected, "+" as dashed border card.
 - **Animations:** Counter animation on CreditBadge updates, subtle fade on pack selection.
-- **Mobile:** Pack cards stack 1-column, full-width CTA.
-- **Typography:** Existing Google Fonts system.
+- **Mobile:** Pack cards and context photos stack appropriately, full-width CTA.
+- **Typography:** Playfair Display (headings) + Poppins (body).
 
 ---
 
-## 9. Acceptance Criteria
+## 10. Acceptance Criteria
 - [ ] Buy Credits page renders 3 pack options
 - [ ] Selected pack highlights with amber border
 - [ ] CTA click sends to Stripe Checkout and redirects back on success
@@ -241,4 +325,9 @@ After signup:
 - [ ] Zero-credits modal blocks generation and links to Buy Credits
 - [ ] Dashboard shows transaction history
 - [ ] Welcome bonus toast appears for new users
+- [ ] Context photo grid loads saved photos from API on wizard mount
+- [ ] Upload new context photo deducts 2 credits and shows thumbnail
+- [ ] Selected context photo sends `context_photo_id` with generation request
+- [ ] Max 10 photos enforced with disabled "+" button and tooltip
+- [ ] Delete context photo works with confirmation
 - [ ] All pages responsive and dark theme consistent

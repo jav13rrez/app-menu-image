@@ -12,6 +12,7 @@ This TSD specifies the backend changes to enforce the credit-based pay-as-you-go
 - Atomically deduct credits before launching AI jobs.
 - Refund credits on generation failures.
 - Expose billing API endpoints.
+- **Context Photo Library** — CRUD endpoints for saved restaurant photos with AI scene analysis.
 
 ---
 
@@ -137,7 +138,17 @@ async def generate_image(
             )
         raise
 
-    # Job creation (existing logic, unchanged)
+    # If context photo selected, fetch its AI description for prompt enrichment
+    context_description = None
+    if req.context_photo_id:
+        ctx_photo = supabase.table("context_photos").select(
+            "ai_description"
+        ).eq("id", req.context_photo_id).eq(
+            "user_id", user.user_id  # RLS double-check
+        ).single().execute()
+        context_description = ctx_photo.data.get("ai_description") if ctx_photo.data else None
+
+    # Job creation (extended with context photo)
     job_id = create_job(
         user_id=user.user_id,
         style_id=req.style_id,
@@ -147,6 +158,8 @@ async def generate_image(
         business_name=req.business_name,
         location=req.location,
         post_context=req.post_context,
+        context_photo_id=req.context_photo_id,          # NEW
+        context_description=context_description,         # NEW: feeds into prompt
     )
 
     return GenerateResponse(
@@ -233,13 +246,117 @@ async def stripe_webhook(request: Request):
 
 ---
 
-## 5. Sequence Diagram
+## 5. Context Photo API Routes
+
+### 5.1 File: `backend/app/api/context_photos.py` (NEW)
+
+```python
+context_router = APIRouter(prefix=f"{API_V1_PREFIX}/context-photos")
+
+MAX_CONTEXT_PHOTOS = 10
+
+@context_router.get("/")
+async def list_context_photos(user: CurrentUser = Depends(get_current_user)):
+    """Returns all saved context photos for the user."""
+    result = supabase.table("context_photos").select("*").eq(
+        "user_id", user.user_id
+    ).order("sort_order").execute()
+    return {"photos": result.data, "count": len(result.data), "max": MAX_CONTEXT_PHOTOS}
+
+@context_router.post("/", status_code=201)
+async def upload_context_photo(
+    image_url: str,
+    label: str = "",
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Upload a new context photo. Costs 2 credits (1 upload + 1 AI analysis)."""
+    # Check limit
+    existing = supabase.table("context_photos").select(
+        "id", count="exact"
+    ).eq("user_id", user.user_id).execute()
+    if existing.count >= MAX_CONTEXT_PHOTOS:
+        raise HTTPException(status_code=409, detail="Máximo 10 espacios alcanzado.")
+
+    # Deduct 2 credits (upload + analysis)
+    credit_cost = CREDIT_COSTS["upload_context_photo"] + CREDIT_COSTS["context_photo_analysis"]
+    try:
+        supabase.rpc("consume_credits", {
+            "p_user_id": user.user_id,
+            "p_amount": credit_cost,
+            "p_description": f"Subida y análisis de foto de contexto: {label or 'Sin nombre'}",
+        }).execute()
+    except Exception as e:
+        if "INSUFFICIENT_CREDITS" in str(e):
+            raise HTTPException(status_code=402, detail="Créditos insuficientes (2 necesarios).")
+        raise
+
+    # AI scene analysis (Gemini Pro Vision)
+    ai_description = await analyze_scene(image_url)
+
+    # Generate thumbnail (resize to 300px width)
+    thumbnail_url = await generate_thumbnail(image_url)
+
+    # Insert into DB
+    photo = supabase.table("context_photos").insert({
+        "user_id": user.user_id,
+        "image_url": image_url,
+        "thumbnail_url": thumbnail_url,
+        "ai_description": ai_description,
+        "label": label or "Mi espacio",
+        "sort_order": existing.count,
+    }).execute()
+
+    return {"photo": photo.data[0], "credits_used": credit_cost}
+
+@context_router.patch("/{photo_id}")
+async def update_context_photo(
+    photo_id: str,
+    label: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Update the label of a saved context photo. Free — no credits."""
+    supabase.table("context_photos").update({
+        "label": label
+    }).eq("id", photo_id).eq("user_id", user.user_id).execute()
+    return {"status": "updated"}
+
+@context_router.delete("/{photo_id}")
+async def delete_context_photo(
+    photo_id: str,
+    user: CurrentUser = Depends(get_current_user),
+):
+    """Delete a saved context photo. Free — no refund."""
+    supabase.table("context_photos").delete().eq(
+        "id", photo_id
+    ).eq("user_id", user.user_id).execute()
+    return {"status": "deleted"}
+```
+
+### 5.2 AI Scene Analysis Function
+```python
+async def analyze_scene(image_url: str) -> str:
+    """Uses Gemini Pro Vision to describe the restaurant scene."""
+    # Prompt: "Describe this restaurant interior in detail for use as
+    # a background context in food photography. Focus on ambiance, 
+    # lighting, furniture, and decor. Respond in Spanish. Max 2 sentences."
+    response = await gemini_vision.generate_content(
+        prompt=SCENE_ANALYSIS_PROMPT,
+        image_url=image_url,
+    )
+    return response.text  # e.g., "Mesa de madera rústica junto a ventana..."
+```
+
+---
+
+## 6. Sequence Diagram — Generation with Context Photo
 
 ```
 User          Frontend          Backend (FastAPI)        Supabase DB
  |               |                    |                      |
- |  Click Gen    |                    |                      |
+ |  Select ctx   |                    |                      |
+ |  photo + Gen  |                    |                      |
  |──────────────>| POST /generate     |                      |
+ |               |  {context_photo_id}|                      |
  |               |───────────────────>| decode JWT           |
  |               |                    |──────────────────────>| SELECT credit_balances
  |               |                    |<──────────────────────| credits: 42
@@ -248,17 +365,18 @@ User          Frontend          Backend (FastAPI)        Supabase DB
  |               |                    |──────────────────────>| UPDATE -2, INSERT tx
  |               |                    |<──────────────────────| balance: 40
  |               |                    |                      |
- |               |                    | create_job()         |
+ |               |                    | fetch ctx photo desc |
+ |               |                    |──────────────────────>| SELECT context_photos
+ |               |                    |<──────────────────────| ai_description
+ |               |                    |                      |
+ |               |                    | create_job(+ctx)     |
  |               |                    |──────────────────────>| INSERT jobs
  |               |<───────────────────| 202 {job_id}         |
- |               |                    |                      |
- |  (If fails)   |                    | refund_credits()     |
- |               |                    |──────────────────────>| UPDATE +2, INSERT tx
 ```
 
 ---
 
-## 6. Acceptance Criteria
+## 7. Acceptance Criteria
 - [ ] `get_current_user()` reads real `credits_remaining` from DB
 - [ ] `consume_credits()` RPC prevents negative balances atomically
 - [ ] Race condition: simultaneous requests cannot overdraw balance
@@ -267,3 +385,9 @@ User          Frontend          Backend (FastAPI)        Supabase DB
 - [ ] `GET /billing/transactions` returns paginated history
 - [ ] Dev mode fallback (999 credits) still works for local testing
 - [ ] All credit mutations logged in `credit_transactions`
+- [ ] `GET /context-photos` returns user's saved photos
+- [ ] `POST /context-photos` deducts 2 credits and runs AI analysis
+- [ ] `POST /context-photos` enforces max 10 limit with 409 error
+- [ ] `PATCH /context-photos/{id}` updates label (free)
+- [ ] `DELETE /context-photos/{id}` removes photo (RLS enforced)
+- [ ] Generation with `context_photo_id` enriches prompt with `ai_description`
