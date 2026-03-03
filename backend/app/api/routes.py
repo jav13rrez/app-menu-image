@@ -67,6 +67,8 @@ async def generate_image(
             business_name=req.business_name,
             location=req.location,
             post_context=req.post_context,
+            context_photo_id=req.context_photo_id,
+            context_description=context_description,
         )
     except Exception as e:
         # Refund credits on job creation failure

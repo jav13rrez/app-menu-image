@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChefHat, CreditCard, Info, Check } from "lucide-react";
 import { useBillingStore } from "@/store/billing";
+import { getAuthHeaders } from "@/lib/auth-headers";
 import CreditBadge from "@/components/CreditBadge";
 
 interface CreditPack {
@@ -33,13 +34,9 @@ export default function BuyCreditsPage() {
     const handlePurchase = async () => {
         setIsLoading(true);
         try {
-            const token = (window as unknown as Record<string, unknown>).__auth_token as string | undefined;
             const res = await fetch(`${API_BASE}/api/v1/billing/buy-credits`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                },
+                headers: getAuthHeaders() as Record<string, string>,
                 body: JSON.stringify({ pack_id: selectedPack }),
             });
 

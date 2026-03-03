@@ -65,6 +65,7 @@ async def upload_context_photo(
         supabase.rpc("consume_credits", {
             "p_user_id": user.user_id,
             "p_amount": credit_cost,
+            "p_type": "context_upload",
             "p_description": f"Subida y análisis de foto de contexto: {req.label}",
         }).execute()
     except Exception as e:

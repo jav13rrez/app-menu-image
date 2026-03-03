@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useWizardStore } from "@/store/wizard";
 import { ImagePlus, Trash2, Check, Camera, X } from "lucide-react";
+import { getAuthHeaders } from "@/lib/auth-headers";
 
 interface ContextPhoto {
     id: string;
@@ -14,16 +15,6 @@ interface ContextPhoto {
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-const getAuthHeaders = (): HeadersInit => {
-    const token =
-        typeof window !== "undefined"
-            ? ((window as unknown as Record<string, unknown>).__auth_token as string | undefined)
-            : undefined;
-    return token
-        ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-        : { "Content-Type": "application/json" };
-};
 
 export default function ContextPhotoPicker() {
     const [photos, setPhotos] = useState<ContextPhoto[]>([]);

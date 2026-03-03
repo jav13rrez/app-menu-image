@@ -89,6 +89,11 @@ async def get_current_user(
 
     except HTTPException:
         raise
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token JWT inválido o expirado.",
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

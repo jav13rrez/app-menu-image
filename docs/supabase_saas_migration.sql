@@ -107,6 +107,7 @@ alter table public.jobs
 create or replace function public.consume_credits(
   p_user_id uuid,
   p_amount int,
+  p_type text default 'generation',
   p_ref_id text default null,
   p_description text default null
 ) returns int as $$
@@ -128,7 +129,7 @@ begin
   insert into public.credit_transactions
     (user_id, amount, balance_after, type, reference_id, description)
   values
-    (p_user_id, -p_amount, v_balance, 'generation', p_ref_id, p_description);
+    (p_user_id, -p_amount, v_balance, p_type, p_ref_id, p_description);
 
   return v_balance;
 end;
