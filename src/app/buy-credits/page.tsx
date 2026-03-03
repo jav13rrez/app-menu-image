@@ -13,6 +13,7 @@ interface CreditPack {
 }
 
 const PACKS: CreditPack[] = [
+    { id: "pack_launch", credits: 40, priceEur: 5 },
     { id: "pack_10", credits: 40, priceEur: 10 },
     { id: "pack_20", credits: 80, priceEur: 20 },
     { id: "pack_50", credits: 200, priceEur: 50 },
@@ -25,7 +26,7 @@ const CREDIT_COSTS = [
 ];
 
 export default function BuyCreditsPage() {
-    const [selectedPack, setSelectedPack] = useState<string>("pack_20");
+    const [selectedPack, setSelectedPack] = useState<string>("pack_launch");
     const [isLoading, setIsLoading] = useState(false);
     const { creditsRemaining } = useBillingStore();
 

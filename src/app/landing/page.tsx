@@ -111,7 +111,7 @@ function useInView(threshold = 0.15) {
 function CTAButton({ label, sub }: { label: string; sub?: string }) {
     return (
         <Link
-            href="/auth/signup"
+            href="/auth/signup?redirect=/buy-credits%3Fpack%3Dpack_launch"
             className="group inline-flex flex-col items-center gap-1 w-full sm:w-auto"
         >
             <span className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#ea580c] hover:bg-[#c2410c] active:scale-[0.98] text-white font-bold text-base sm:text-lg px-8 py-4 rounded-xl transition-all duration-200 shadow-lg shadow-orange-900/40 cursor-pointer">

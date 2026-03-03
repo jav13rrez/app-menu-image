@@ -15,11 +15,15 @@ create table if not exists public.credit_packs (
 );
 
 -- Seed packs at €0.25/credit
-insert into public.credit_packs (id, display_name, credits, price_eur) values
-  ('pack_10', '40 créditos', 40, 10.00),
-  ('pack_20', '80 créditos', 80, 20.00),
-  ('pack_50', '200 créditos', 200, 50.00)
-on conflict (id) do nothing;
+-- ⚡ Pack de Lanzamiento (oferta temporal — modo test)
+insert into public.credit_packs (id, display_name, credits, price_eur, stripe_price_id) values
+  ('pack_launch', 'Pack Lanzamiento · 20 publicaciones', 40, 5.00, 'price_1T6vbhDcvABCRuSUJbSZzlbV'),
+  ('pack_10',     '40 créditos (~20 publicaciones)',      40, 10.00, null),
+  ('pack_20',     '80 créditos (~40 publicaciones)',      80, 20.00, null),
+  ('pack_50',     '200 créditos (~100 publicaciones)',   200, 50.00, null)
+on conflict (id) do update set
+  stripe_price_id = excluded.stripe_price_id,
+  display_name    = excluded.display_name;
 
 
 -- 2. CREDIT BALANCES (One row per user)
