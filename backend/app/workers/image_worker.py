@@ -20,6 +20,8 @@ def create_job(
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
+    context_photo_id: str | None = None,
+    context_description: str | None = None,
 ) -> str:
     # 1. Bypass para usuarios sin login ("dev-user")
     if user_id == "dev-user":
@@ -43,8 +45,11 @@ def create_job(
         "input_image_url": image_url,
         "business_name": business_name,
         "location": location,
-        "post_context": post_context
+        "post_context": post_context,
     }
+    # Add context photo reference if provided
+    if context_photo_id:
+        job_data["context_photo_id"] = context_photo_id
     
     response = supabase.table("jobs").insert(job_data).execute()
     job_id = response.data[0]["id"]

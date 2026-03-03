@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getAuthHeaders } from "@/lib/auth-headers";
 
 interface BalanceData {
     creditsRemaining: number;
@@ -29,18 +30,7 @@ interface BillingState extends BalanceData {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-const getAuthHeaders = (): HeadersInit => {
-    // Token is managed by the Providers component via setAuthToken
-    const token =
-        typeof window !== "undefined"
-            ? ((window as unknown as Record<string, unknown>).__auth_token as string | undefined)
-            : undefined;
-    return token
-        ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-        : { "Content-Type": "application/json" };
-};
-
-export const useBillingStore = create<BillingState>()((set, get) => ({
+export const useBillingStore = create<BillingState>()((set) => ({
     creditsRemaining: 0,
     totalPurchased: 0,
     totalConsumed: 0,

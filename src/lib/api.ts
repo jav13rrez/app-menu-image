@@ -14,6 +14,7 @@ export interface GenerateRequest {
   business_name?: string;
   location?: string;
   post_context?: string;
+  context_photo_id?: string;
 }
 
 export interface GenerateResponse {

@@ -45,6 +45,8 @@ async def get_transactions(
     offset: int = 0,
 ):
     """Returns paginated credit transaction history."""
+    limit = min(max(limit, 1), 100)  # Bound: 1 ≤ limit ≤ 100
+    offset = max(offset, 0)
     supabase = get_supabase()
     resp = (
         supabase.table("credit_transactions")
@@ -137,8 +139,10 @@ async def stripe_webhook(request: Request):
         event = stripe.Webhook.construct_event(
             payload, sig_header, STRIPE_WEBHOOK_SECRET
         )
-    except (ValueError, stripe.error.SignatureVerificationError):
-        raise HTTPException(status_code=400, detail="Firma inválida.")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Payload inválido.")
+    except stripe.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Firma de webhook inválida.")
 
     # Handle events
     if event["type"] == "checkout.session.completed":
