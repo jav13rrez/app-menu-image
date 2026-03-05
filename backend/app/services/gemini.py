@@ -19,11 +19,23 @@ async def generate_food_image(
     style_id: str,
     narrative: str,
     aspect_ratio: str,
+    business_name: str | None = None,
+    location: str | None = None,
+    post_context: str | None = None,
+    context_description: str | None = None,
 ) -> bytes:
     if not client:
         raise RuntimeError("API key de Gemini no configurada")
 
-    prompt = build_prompt(style_id, narrative, aspect_ratio)
+    prompt = build_prompt(
+        style_id=style_id,
+        narrative=narrative,
+        aspect_ratio=aspect_ratio,
+        business_name=business_name,
+        location=location,
+        post_context=post_context,
+        context_description=context_description,
+    )
     img = Image.open(BytesIO(image_bytes))
 
     response = client.models.generate_content(

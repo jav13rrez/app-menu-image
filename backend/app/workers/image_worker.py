@@ -23,15 +23,27 @@ def create_job(
     context_photo_id: str | None = None,
     context_description: str | None = None,
 ) -> str:
-    # 1. Bypass para usuarios sin login ("dev-user")
-    if user_id == "dev-user":
-        import uuid
-        job_id = f"job_{uuid.uuid4().hex[:12]}"
+    # 1. Bypass para usuarios sin login (dev UUID fallback)
+    DEV_USER_ID = "00000000-0000-0000-0000-000000000000"
+    if user_id == DEV_USER_ID:
+        import uuid as _uuid
+        job_id = f"job_{_uuid.uuid4().hex[:12]}"
         logger.warning(f"Creando trabajo sin guardar en DB para dev-user: {job_id}")
         if USE_MOCK:
-            asyncio.create_task(_process_job_mock(job_id))
+            asyncio.create_task(_process_job_mock(
+                job_id,
+                business_name=business_name,
+                location=location,
+                post_context=post_context,
+            ))
         else:
-            asyncio.create_task(_process_job_no_db(job_id, user_id, style_id, narrative, aspect_ratio, image_url, business_name, location, post_context))
+            asyncio.create_task(_process_job_no_db(
+                job_id, user_id, style_id, narrative, aspect_ratio, image_url,
+                business_name=business_name,
+                location=location,
+                post_context=post_context,
+                context_description=context_description,
+            ))
         return job_id
 
     # Crear registro en Supabase
@@ -80,6 +92,10 @@ async def _process_job(job_id: str):
             style_id=job["style_id"],
             narrative=job["narrative"],
             aspect_ratio=job["aspect_ratio"],
+            business_name=job.get("business_name"),
+            location=job.get("location"),
+            post_context=job.get("post_context"),
+            context_description=None,  # TODO: fetch from context_photos if context_photo_id present
         )
 
         # 4. Subir a Supabase Storage (Opcional, por ahora simulamos URL o usamos base64)
@@ -121,11 +137,31 @@ async def _process_job(job_id: str):
 
 jobs_store = {}
 
-async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative: str, aspect_ratio: str, image_url: str, business_name: str | None = None, location: str | None = None, post_context: str | None = None):
+async def _process_job_no_db(
+    job_id: str,
+    user_id: str,
+    style_id: str,
+    narrative: str,
+    aspect_ratio: str,
+    image_url: str,
+    business_name: str | None = None,
+    location: str | None = None,
+    post_context: str | None = None,
+    context_description: str | None = None,
+):
     jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": user_id, "result": None, "error": None}
     try:
         image_bytes = await _download_image(image_url)
-        generated_bytes = await generate_food_image(image_bytes=image_bytes, style_id=style_id, narrative=narrative, aspect_ratio=aspect_ratio)
+        generated_bytes = await generate_food_image(
+            image_bytes=image_bytes,
+            style_id=style_id,
+            narrative=narrative,
+            aspect_ratio=aspect_ratio,
+            business_name=business_name,
+            location=location,
+            post_context=post_context,
+            context_description=context_description,
+        )
         caption_data = await generate_caption(
             image_bytes=generated_bytes,
             business_name=business_name,
@@ -150,18 +186,39 @@ async def _process_job_no_db(job_id: str, user_id: str, style_id: str, narrative
         jobs_store[job_id]["error"] = str(e)
 
 
-async def _process_job_mock(job_id: str):
-    jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": "dev-user", "result": None, "error": None}
+async def _process_job_mock(
+    job_id: str,
+    business_name: str | None = None,
+    location: str | None = None,
+    post_context: str | None = None,
+):
+    DEV_USER_ID = "00000000-0000-0000-0000-000000000000"
+    jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": DEV_USER_ID, "result": None, "error": None}
     await asyncio.sleep(5)
-    
+
+    # Build context-aware mock data
+    hashtags = ["#AltaCocina", "#Foodie", "#FotografiaGastronomica"]
+    headline = "Sabor Artesanal"
+    tagline = "Cada bocado cuenta una historia de tradición y pasión culinaria"
+    copy = "Saborea la noche... Nuestro chef acaba de terminar esta obra maestra. ¡Etiqueta a alguien con quien la compartirías!"
+
+    if business_name:
+        hashtags.append(f"#{business_name.replace(' ', '')}")
+        copy = f"{business_name} te presenta una experiencia gastronómica única. {copy}"
+    if location:
+        hashtags.append(f"#Foodie{location.replace(' ', '')}")
+        hashtags.append(f"#{location.replace(' ', '')}")
+    if post_context:
+        tagline = f"{post_context} — {tagline}"
+
     result_data = {
         "generated_image_url": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&q=80",
-        "generated_copy": "Sabor artesanal. ¡Etiqueta a alguien con quien compartirías!",
-        "hashtags": ["#AltaCocina", "#Foodie"],
-        "headline": "Sabor Artesanal",
-        "tagline": "Hecho con pasión"
+        "generated_copy": copy,
+        "hashtags": hashtags,
+        "headline": headline,
+        "tagline": tagline,
     }
-    
+
     jobs_store[job_id]["status"] = JobStatus.COMPLETED
     jobs_store[job_id]["result"] = result_data
 

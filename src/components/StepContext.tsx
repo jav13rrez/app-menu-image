@@ -89,7 +89,7 @@ export default function StepContext() {
                             <option value="custom">{t.context.customContext}</option>
                         </select>
 
-                        {(preset === "custom" || (preset !== "" && preset !== "weekend" && preset !== "today" && preset !== "chef" && preset !== "party" && preset !== "valentine")) && (
+                        {preset !== "" && (
                             <textarea
                                 value={postContext}
                                 onChange={(e) => setPostContext(e.target.value)}

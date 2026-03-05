@@ -112,12 +112,13 @@ export default function ContextPhotoPicker() {
                 <div className="flex items-center gap-2 mb-1">
                     <Camera className="w-4 h-4 text-[var(--fs-accent)]" />
                     <h3 className="text-sm font-semibold text-[var(--fs-text-primary)]">
-                        Agrega Contexto
+                        Tu Identidad Visual
                     </h3>
                 </div>
                 <p className="text-xs text-[var(--fs-text-muted)]">
-                    La fotografía que elijas servirá de fondo de la imagen final. Puede
-                    ser un rincón especial de tu local u otra imagen que desees.
+                    Sube cualquier imagen que represente tu negocio: una foto de tu local,
+                    un graffiti, una ilustración, el skyline de tu ciudad, tu logo...
+                    ¡Imaginación al poder! La IA integrará su atmósfera en el fondo de tu imagen.
                 </p>
             </div>
 
