@@ -97,32 +97,43 @@ async def buy_credits(
             detail="Pack no vinculado a Stripe. Contacta al administrador.",
         )
 
-    # Get or create Stripe Customer
-    customer_id = user.stripe_customer_id
-    if not customer_id:
-        customer = stripe.Customer.create(
-            metadata={"user_id": user.user_id},
+    try:
+        # Get or create Stripe Customer
+        customer_id = user.stripe_customer_id
+        if not customer_id:
+            customer = stripe.Customer.create(
+                metadata={"user_id": user.user_id},
+            )
+            customer_id = customer.id
+            supabase.table("profiles").update(
+                {"stripe_customer_id": customer_id}
+            ).eq("id", user.user_id).execute()
+
+        # Create Checkout Session
+        session = stripe.checkout.Session.create(
+            mode="payment",
+            customer=customer_id,
+            line_items=[{"price": pack["stripe_price_id"], "quantity": 1}],
+            success_url=f"{FRONTEND_URL}/dashboard?payment=success",
+            cancel_url=f"{FRONTEND_URL}/buy-credits",
+            metadata={
+                "user_id": user.user_id,
+                "pack_id": req.pack_id,
+                "credits": str(pack["credits"]),
+            },
         )
-        customer_id = customer.id
-        supabase.table("profiles").update(
-            {"stripe_customer_id": customer_id}
-        ).eq("id", user.user_id).execute()
 
-    # Create Checkout Session
-    session = stripe.checkout.Session.create(
-        mode="payment",
-        customer=customer_id,
-        line_items=[{"price": pack["stripe_price_id"], "quantity": 1}],
-        success_url=f"{FRONTEND_URL}/dashboard?payment=success",
-        cancel_url=f"{FRONTEND_URL}/buy-credits",
-        metadata={
-            "user_id": user.user_id,
-            "pack_id": req.pack_id,
-            "credits": str(pack["credits"]),
-        },
-    )
-
-    return BuyCreditResponse(checkout_url=session.url or "")
+        return BuyCreditResponse(checkout_url=session.url or "")
+    except stripe.StripeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error en Stripe: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
 
 
 @billing_router.post("/webhooks/stripe")

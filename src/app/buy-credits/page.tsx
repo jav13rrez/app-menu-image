@@ -50,8 +50,9 @@ export default function BuyCreditsPage() {
                 const err = await res.json();
                 alert(err.detail || "Error al crear la sesión de pago.");
             }
-        } catch {
-            alert("Error de conexión. Inténtalo de nuevo.");
+        } catch (err: any) {
+            console.error("Purchase error:", err);
+            alert(`Error de conexión o fallo interno. Revisa la consola.`);
         } finally {
             setIsLoading(false);
         }

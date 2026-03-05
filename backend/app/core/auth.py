@@ -36,8 +36,8 @@ async def get_current_user(
     # Dev mode fallback — no token means local testing
     if not credentials:
         return CurrentUser(
-            user_id="dev-user",
-            tenant_id="dev-tenant",
+            user_id="00000000-0000-0000-0000-000000000000",
+            tenant_id="00000000-0000-0000-0000-000000000000",
             credits_remaining=999,
         )
 

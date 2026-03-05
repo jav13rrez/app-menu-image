@@ -111,7 +111,7 @@ function useInView(threshold = 0.15) {
 function CTAButton({ label, sub }: { label: string; sub?: string }) {
     return (
         <Link
-            href="/auth/signup?redirect=/buy-credits%3Fpack%3Dpack_launch"
+            href="/buy-credits?pack=pack_launch"
             className="group inline-flex flex-col items-center gap-1 w-full sm:w-auto"
         >
             <span className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#ea580c] hover:bg-[#c2410c] active:scale-[0.98] text-white font-bold text-base sm:text-lg px-8 py-4 rounded-xl transition-all duration-200 shadow-lg shadow-orange-900/40 cursor-pointer">
@@ -173,7 +173,7 @@ export default function LandingPage() {
                     </div>
                     {/* Desktop CTA */}
                     <Link
-                        href="/auth/signup"
+                        href="/buy-credits?pack=pack_launch"
                         className="hidden sm:inline-flex items-center gap-1.5 bg-[#ea580c] hover:bg-[#c2410c] text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors cursor-pointer"
                     >
                         Empezar por 5€
@@ -192,7 +192,7 @@ export default function LandingPage() {
                 {menuOpen && (
                     <div className="sm:hidden border-t border-[#1f1f1f] bg-[#0a0a0a] px-4 py-4">
                         <Link
-                            href="/auth/signup"
+                            href="/buy-credits?pack=pack_launch"
                             className="block w-full text-center bg-[#ea580c] hover:bg-[#c2410c] text-white font-semibold px-4 py-3 rounded-lg transition-colors cursor-pointer"
                             onClick={() => setMenuOpen(false)}
                         >
