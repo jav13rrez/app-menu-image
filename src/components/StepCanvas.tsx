@@ -237,88 +237,120 @@ export default function StepCanvas() {
     return () => window.removeEventListener("mouseup", handleGlobalMouseUp);
   }, []);
 
+  const [isExporting, setIsExporting] = useState(false);
+
   const exportCanvas = async () => {
     if (!store.generatedImageUrl) return;
+    setIsExporting(true);
 
-    const canvas = document.createElement("canvas");
-    canvas.width = size.w;
-    canvas.height = size.h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = size.w;
+      canvas.height = size.h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-    const img = new Image();
-    img.crossOrigin = "anonymous";
+      // ── 1. Ensure all Google Fonts used in texts are loaded in this context ──
+      await document.fonts.ready;
+      const fontFamiliesInUse = [...new Set(texts.map((t) => t.fontFamily))];
+      await Promise.allSettled(
+        fontFamiliesInUse.map((family) =>
+          document.fonts.load(`900 48px "${family}"`)
+        )
+      );
 
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = reject;
-      img.src = store.generatedImageUrl!;
-    });
+      // ── 2. Draw the background image ──
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => {
+          // Retry without crossOrigin when CORS headers are absent
+          const img2 = new Image();
+          img2.onload = () => {
+            Object.assign(img, img2);
+            resolve();
+          };
+          img2.onerror = reject;
+          img2.src = store.generatedImageUrl!;
+        };
+        img.src = store.generatedImageUrl!;
+      });
 
-    const imgScale = Math.max(size.w / img.naturalWidth, size.h / img.naturalHeight);
-    const imgW = img.naturalWidth * imgScale;
-    const imgH = img.naturalHeight * imgScale;
-    const imgX = (size.w - imgW) / 2;
-    const imgY = (size.h - imgH) / 2;
+      const imgScale = Math.max(size.w / img.naturalWidth, size.h / img.naturalHeight);
+      const imgW = img.naturalWidth * imgScale;
+      const imgH = img.naturalHeight * imgScale;
+      const imgX = (size.w - imgW) / 2;
+      const imgY = (size.h - imgH) / 2;
+      ctx.drawImage(img, imgX, imgY, imgW, imgH);
 
-    ctx.drawImage(img, imgX, imgY, imgW, imgH);
+      // ── 3. Draw each text layer ──
+      for (const text of texts) {
+        const textX = (text.x / 100) * size.w;
+        const textY = (text.y / 100) * size.h;
+        const maxWidthPx = (text.maxWidth / 100) * size.w;
 
-    for (const text of texts) {
-      const textX = (text.x / 100) * size.w;
-      const textY = (text.y / 100) * size.h;
-      const maxWidthPx = (text.maxWidth / 100) * size.w;
+        // Set font — must match what the CSS preview renders
+        ctx.font = `${text.fontWeight} ${text.fontSize}px "${text.fontFamily}", sans-serif`;
+        ctx.fillStyle = text.color;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
 
-      ctx.font = `${text.fontWeight} ${text.fontSize}px "${text.fontFamily}", sans-serif`;
-      ctx.fillStyle = text.color;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      const shadowConfig = SHADOW_PRESETS[text.shadowPreset];
-      if (text.shadowPreset !== "none") {
-        ctx.shadowBlur = shadowConfig.blur;
-        ctx.shadowOffsetX = shadowConfig.offsetX;
-        ctx.shadowOffsetY = shadowConfig.offsetY;
-        if (shadowConfig.useTextColor) {
-          ctx.shadowColor = hexToRgba(text.color, 0.6);
-        } else if (shadowConfig.useCustomColor) {
-          ctx.shadowColor = text.shadowColor;
+        // Apply shadow
+        const shadowConfig = SHADOW_PRESETS[text.shadowPreset];
+        if (text.shadowPreset !== "none") {
+          ctx.shadowBlur = shadowConfig.blur;
+          ctx.shadowOffsetX = shadowConfig.offsetX;
+          ctx.shadowOffsetY = shadowConfig.offsetY;
+          ctx.shadowColor = shadowConfig.useTextColor
+            ? hexToRgba(text.color, 0.6)
+            : shadowConfig.useCustomColor
+              ? text.shadowColor
+              : shadowConfig.color;
         } else {
-          ctx.shadowColor = shadowConfig.color;
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.shadowColor = "transparent";
         }
-      } else {
+
+        wrapText(ctx, text.content, textX, textY, maxWidthPx, text.fontSize * 1.2);
+
+        // Reset shadow so it doesn't bleed into next element
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         ctx.shadowColor = "transparent";
       }
 
-      wrapText(ctx, text.content, textX, textY, maxWidthPx, text.fontSize * 1.2);
-    }
+      // ── 4. Export as PNG ──
+      const dataUrl = canvas.toDataURL("image/png", 1);
+      const fileName = `foodsocial_${Date.now()}.png`;
 
-    const dataUrl = canvas.toDataURL("image/png", 1);
-    const fileName = `foodsocial_${Date.now()}.png`;
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], fileName, { type: "image/png" });
 
-    try {
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], fileName, { type: "image/png" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: t.appName,
-        });
-        return;
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: t.appName });
+          return;
+        }
+      } catch (e) {
+        console.warn("Share API fallback:", e);
       }
-    } catch (e) {
-      console.warn("Share API fallback", e);
-    }
 
-    // Fallback: Descarga clásica para navegadores de PC
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = fileName;
-    a.click();
+      // Fallback: classic anchor download
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = fileName;
+      a.click();
+
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const changeAspect = (ratio: AspectRatio) => {
@@ -633,10 +665,23 @@ export default function StepCanvas() {
         <div className="flex gap-3 mt-4">
           <button
             onClick={exportCanvas}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 text-white rounded-xl font-semibold cursor-pointer hover:bg-amber-500 transition-colors duration-200"
+            disabled={isExporting}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 text-white rounded-xl font-semibold cursor-pointer hover:bg-amber-500 transition-colors duration-200 disabled:opacity-70 disabled:cursor-wait"
           >
-            <Download className="w-5 h-5" />
-            {t.canvas.download}
+            {isExporting ? (
+              <>
+                <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Generando...
+              </>
+            ) : (
+              <>
+                <Download className="w-5 h-5" />
+                {t.canvas.download}
+              </>
+            )}
           </button>
         </div>
 
