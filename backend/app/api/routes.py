@@ -19,8 +19,11 @@ async def generate_image(
 ):
     credit_cost = CREDIT_COSTS["generate_image_standard"]
 
+    DEV_USER_ID = "00000000-0000-0000-0000-000000000000"
+    is_dev_user = user.user_id == DEV_USER_ID
+
     # Pre-check (real enforcement is in the DB function)
-    if user.credits_remaining < credit_cost:
+    if not is_dev_user and user.credits_remaining < credit_cost:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail="Créditos insuficientes. Compra más créditos para continuar.",
@@ -28,24 +31,25 @@ async def generate_image(
 
     supabase = get_supabase()
 
-    # Atomic credit deduction via Supabase RPC
-    try:
-        supabase.rpc("consume_credits", {
-            "p_user_id": user.user_id,
-            "p_amount": credit_cost,
-            "p_description": f"Generación de imagen - estilo {req.style_id}",
-        }).execute()
-    except Exception as e:
-        if "INSUFFICIENT_CREDITS" in str(e):
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail="Créditos insuficientes.",
-            )
-        raise
+    # Atomic credit deduction via Supabase RPC (skip for dev user)
+    if not is_dev_user:
+        try:
+            supabase.rpc("consume_credits", {
+                "p_user_id": user.user_id,
+                "p_amount": credit_cost,
+                "p_description": f"Generación de imagen - estilo {req.style_id}",
+            }).execute()
+        except Exception as e:
+            if "INSUFFICIENT_CREDITS" in str(e):
+                raise HTTPException(
+                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                    detail="Créditos insuficientes.",
+                )
+            raise
 
     # If context photo selected, fetch its AI description for prompt enrichment
     context_description = None
-    if req.context_photo_id:
+    if req.context_photo_id and not is_dev_user:
         ctx_resp = (
             supabase.table("context_photos")
             .select("ai_description")
@@ -71,15 +75,16 @@ async def generate_image(
             context_description=context_description,
         )
     except Exception as e:
-        # Refund credits on job creation failure
-        try:
-            supabase.rpc("add_purchased_credits", {
-                "p_user_id": user.user_id,
-                "p_amount": credit_cost,
-                "p_stripe_payment_id": f"refund-job-creation-{user.user_id}",
-            }).execute()
-        except Exception:
-            pass  # Log but don't mask original error
+        # Refund credits on job creation failure (skip for dev user)
+        if not is_dev_user:
+            try:
+                supabase.rpc("add_purchased_credits", {
+                    "p_user_id": user.user_id,
+                    "p_amount": credit_cost,
+                    "p_stripe_payment_id": f"refund-job-creation-{user.user_id}",
+                }).execute()
+            except Exception:
+                pass  # Log but don't mask original error
         import traceback
         traceback.print_exc()
         raise HTTPException(

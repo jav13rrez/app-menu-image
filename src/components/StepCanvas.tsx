@@ -3,7 +3,7 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useWizardStore, type AspectRatio } from "@/store/wizard";
 import { t } from "@/lib/i18n";
-import { FONTS } from "@/lib/fonts";
+import FontPicker from "@/components/FontPicker";
 import { X, Move, Type, GripVertical, Copy, Check, Download, RotateCcw } from "lucide-react";
 
 const ASPECT_SIZES: Record<AspectRatio, { w: number; h: number }> = {
@@ -466,15 +466,10 @@ export default function StepCanvas() {
                     >
                       {/* Fila 1: Tipografía, Peso, Color y Borrar */}
                       <div className="flex items-center justify-between gap-2">
-                        <select
+                        <FontPicker
                           value={text.fontFamily}
-                          onChange={(e) => updateText(text.id, { fontFamily: e.target.value })}
-                          className="bg-gray-800 text-white text-xs border border-gray-700 rounded p-1.5 focus:outline-none cursor-pointer flex-1 min-w-[90px] [color-scheme:dark]"
-                        >
-                          {FONTS.map((font) => (
-                            <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>{font.family}</option>
-                          ))}
-                        </select>
+                          onChange={(family) => updateText(text.id, { fontFamily: family })}
+                        />
 
                         <select
                           value={text.fontWeight}
