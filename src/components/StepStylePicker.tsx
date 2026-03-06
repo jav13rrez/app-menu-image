@@ -24,6 +24,7 @@ export default function StepStylePicker() {
 
   return (
     <div className="flex flex-col gap-8">
+      {/* ── Style Cards ── */}
       <div>
         <h2 className="text-2xl font-bold mb-2">{t.style.title}</h2>
         <p className="text-gray-400 mb-4">{t.style.subtitle}</p>
@@ -33,19 +34,30 @@ export default function StepStylePicker() {
               key={style.id}
               onClick={() => setStyle(style.id)}
               aria-label={`Seleccionar estilo ${style.name}`}
-              className={`relative rounded-xl p-4 h-32 flex flex-col justify-end cursor-pointer transition-all duration-200 bg-gradient-to-br ${style.gradient} ${
-                selectedStyleId === style.id
+              className={`relative rounded-xl h-32 flex flex-col justify-end cursor-pointer transition-all duration-200 overflow-hidden ${selectedStyleId === style.id
                   ? "ring-2 ring-amber-500 ring-offset-2 ring-offset-gray-900"
                   : "hover:ring-1 hover:ring-gray-500"
-              }`}
+                }`}
             >
-              <span className="font-semibold text-white drop-shadow-lg">{style.name}</span>
-              <span className="text-xs text-white/70 drop-shadow">{style.description}</span>
+              {/* Background: image with gradient fallback */}
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${style.gradient} bg-cover bg-center`}
+                style={{ backgroundImage: `url(${style.image})` }}
+              />
+              {/* Dark overlay 50% for text readability */}
+              <div className="absolute inset-0 bg-black/50" />
+              {/* Text content */}
+              <div className="relative z-10 p-4">
+                <span className="font-semibold text-white drop-shadow-lg">{style.name}</span>
+                <br />
+                <span className="text-xs text-white/80 drop-shadow">{style.description}</span>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
+      {/* ── Narrative Cards ── */}
       <div>
         <h2 className="text-2xl font-bold mb-2">{t.style.narrativeTitle}</h2>
         <p className="text-gray-400 mb-4">{t.style.narrativeSubtitle}</p>
@@ -57,21 +69,32 @@ export default function StepStylePicker() {
                 key={n.id}
                 onClick={() => setNarrative(n.id)}
                 aria-label={`Seleccionar ${n.name}`}
-                className={`rounded-xl p-4 flex flex-col items-center gap-2 cursor-pointer transition-all duration-200 ${
-                  selectedNarrative === n.id
-                    ? "bg-amber-500/20 ring-2 ring-amber-500"
-                    : "bg-gray-800 hover:bg-gray-700"
-                }`}
+                className={`relative rounded-xl flex flex-col items-center gap-2 cursor-pointer transition-all duration-200 overflow-hidden ${selectedNarrative === n.id
+                    ? "ring-2 ring-amber-500"
+                    : "hover:ring-1 hover:ring-gray-500"
+                  }`}
               >
-                <Icon className="w-8 h-8" />
-                <span className="font-medium text-sm">{n.name}</span>
-                <span className="text-xs text-gray-400">{n.description}</span>
+                {/* Background: image with solid color fallback */}
+                <div
+                  className={`absolute inset-0 bg-cover bg-center ${selectedNarrative === n.id ? "bg-amber-900/40" : "bg-gray-800"
+                    }`}
+                  style={{ backgroundImage: `url(${n.image})` }}
+                />
+                {/* Dark overlay 50% for text readability */}
+                <div className="absolute inset-0 bg-black/50" />
+                {/* Content */}
+                <div className="relative z-10 p-4 flex flex-col items-center gap-2">
+                  <Icon className="w-8 h-8 text-white drop-shadow" />
+                  <span className="font-medium text-sm text-white drop-shadow">{n.name}</span>
+                  <span className="text-xs text-white/80 drop-shadow">{n.description}</span>
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* ── Aspect Ratio ── */}
       <div>
         <h2 className="text-2xl font-bold mb-2">{t.style.formatTitle}</h2>
         <p className="text-gray-400 mb-4">{t.style.formatSubtitle}</p>
@@ -81,11 +104,10 @@ export default function StepStylePicker() {
               key={ratio}
               onClick={() => setAspectRatio(ratio)}
               aria-label={`Proporción ${ratio}`}
-              className={`px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${
-                selectedAspectRatio === ratio
+              className={`px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${selectedAspectRatio === ratio
                   ? "bg-amber-600 text-white"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700"
-              }`}
+                }`}
             >
               {ratio}
             </button>
