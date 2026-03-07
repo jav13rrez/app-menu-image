@@ -17,6 +17,7 @@ def create_job(
     narrative: str,
     aspect_ratio: str,
     image_url: str,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
@@ -32,6 +33,7 @@ def create_job(
         if USE_MOCK:
             asyncio.create_task(_process_job_mock(
                 job_id,
+                dish_name=dish_name,
                 business_name=business_name,
                 location=location,
                 post_context=post_context,
@@ -39,6 +41,7 @@ def create_job(
         else:
             asyncio.create_task(_process_job_no_db(
                 job_id, user_id, style_id, narrative, aspect_ratio, image_url,
+                dish_name=dish_name,
                 business_name=business_name,
                 location=location,
                 post_context=post_context,
@@ -144,6 +147,7 @@ async def _process_job_no_db(
     narrative: str,
     aspect_ratio: str,
     image_url: str,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
@@ -157,6 +161,7 @@ async def _process_job_no_db(
             style_id=style_id,
             narrative=narrative,
             aspect_ratio=aspect_ratio,
+            dish_name=dish_name,
             business_name=business_name,
             location=location,
             post_context=post_context,
@@ -164,6 +169,7 @@ async def _process_job_no_db(
         )
         caption_data = await generate_caption(
             image_bytes=generated_bytes,
+            dish_name=dish_name,
             business_name=business_name,
             location=location,
             post_context=post_context
@@ -188,6 +194,7 @@ async def _process_job_no_db(
 
 async def _process_job_mock(
     job_id: str,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,

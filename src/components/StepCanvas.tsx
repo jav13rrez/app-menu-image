@@ -260,29 +260,29 @@ export default function StepCanvas() {
       );
 
       // ── 2. Draw the background image ──
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => {
-          // Retry without crossOrigin when CORS headers are absent
+      // Load image with CORS retry: first attempt with crossOrigin for tainted
+      // canvas support; if server lacks CORS headers, retry without crossOrigin
+      // and proxy through a canvas to get a clean bitmap we can draw + export.
+      const loadedImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img1 = new Image();
+        img1.crossOrigin = "anonymous";
+        img1.onload = () => resolve(img1);
+        img1.onerror = () => {
+          // CORS attempt failed — load without crossOrigin
           const img2 = new Image();
-          img2.onload = () => {
-            Object.assign(img, img2);
-            resolve();
-          };
-          img2.onerror = reject;
+          img2.onload = () => resolve(img2);
+          img2.onerror = () => reject(new Error("No se pudo cargar la imagen generada"));
           img2.src = store.generatedImageUrl!;
         };
-        img.src = store.generatedImageUrl!;
+        img1.src = store.generatedImageUrl!;
       });
 
-      const imgScale = Math.max(size.w / img.naturalWidth, size.h / img.naturalHeight);
-      const imgW = img.naturalWidth * imgScale;
-      const imgH = img.naturalHeight * imgScale;
+      const imgScale = Math.max(size.w / loadedImg.naturalWidth, size.h / loadedImg.naturalHeight);
+      const imgW = loadedImg.naturalWidth * imgScale;
+      const imgH = loadedImg.naturalHeight * imgScale;
       const imgX = (size.w - imgW) / 2;
       const imgY = (size.h - imgH) / 2;
-      ctx.drawImage(img, imgX, imgY, imgW, imgH);
+      ctx.drawImage(loadedImg, imgX, imgY, imgW, imgH);
 
       // ── 3. Draw each text layer ──
       for (const text of texts) {
@@ -327,20 +327,28 @@ export default function StepCanvas() {
       const dataUrl = canvas.toDataURL("image/png", 1);
       const fileName = `foodsocial_${Date.now()}.png`;
 
-      try {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        const file = new File([blob], fileName, { type: "image/png" });
+      // On mobile: use Share API → gives iOS "Save to Gallery / Save to Files" options
+      // On desktop: direct download → avoids broken Windows share dialog
+      const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({ files: [file], title: t.appName });
-          return;
+      if (isMobile && navigator.share && navigator.canShare) {
+        try {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          const file = new File([blob], fileName, { type: "image/png" });
+
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: t.appName });
+            return;
+          }
+        } catch (e) {
+          // User cancelled share or API failed — fall through to download
+          if ((e as Error).name === "AbortError") return;
+          console.warn("Share API fallback:", e);
         }
-      } catch (e) {
-        console.warn("Share API fallback:", e);
       }
 
-      // Fallback: classic anchor download
+      // Fallback / desktop: classic anchor download
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = fileName;

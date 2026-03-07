@@ -97,9 +97,11 @@ export default function StepLoading() {
           style_id: state.selectedStyleId,
           narrative: state.selectedNarrative || "none",
           aspect_ratio: state.selectedAspectRatio,
+          dish_name: state.dishName || undefined,
           business_name: state.businessName || undefined,
           location: state.location || undefined,
           post_context: state.postContext || undefined,
+          context_photo_id: state.selectedContextPhotoId || undefined,
         });
 
         if (cancelledRef.current) return;
@@ -153,17 +155,34 @@ export default function StepLoading() {
 
   if (store.error) {
     return (
-      <div className="flex flex-col items-center gap-6 py-16">
-        <div className="text-red-400 text-lg">{store.error}</div>
-        <button
-          onClick={() => {
-            store.setError(null);
-            store.setStep(1);
-          }}
-          className="px-6 py-3 bg-amber-600 text-white rounded-xl cursor-pointer hover:bg-amber-500 transition-colors duration-200"
-        >
-          {t.loading.tryAgain}
-        </button>
+      <div className="flex flex-col items-center gap-6 py-16 max-w-md mx-auto text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+          <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Algo no salió bien</h3>
+          <p className="text-sm text-gray-400 leading-relaxed">{store.error}</p>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => {
+              store.setError(null);
+              store.setGenerating(false);
+              store.setStep(1);
+            }}
+            className="px-5 py-2.5 bg-amber-600 text-white rounded-xl cursor-pointer hover:bg-amber-500 transition-colors duration-200 font-medium"
+          >
+            {t.loading.tryAgain}
+          </button>
+          <button
+            onClick={() => store.reset()}
+            className="px-5 py-2.5 bg-gray-800 text-gray-300 rounded-xl cursor-pointer hover:bg-gray-700 transition-colors duration-200 font-medium"
+          >
+            Empezar de nuevo
+          </button>
+        </div>
       </div>
     );
   }

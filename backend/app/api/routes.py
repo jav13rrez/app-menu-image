@@ -47,19 +47,25 @@ async def generate_image(
                 )
             raise
 
-    # If context photo selected, fetch its AI description for prompt enrichment
-    context_description = None
-    if req.context_photo_id and not is_dev_user:
-        ctx_resp = (
-            supabase.table("context_photos")
-            .select("ai_description")
-            .eq("id", req.context_photo_id)
-            .eq("user_id", user.user_id)
-            .maybe_single()
-            .execute()
-        )
-        if ctx_resp.data:
-            context_description = ctx_resp.data.get("ai_description")
+    # If context photo selected, fetch its raw image URL for multimodal injection
+    context_image_url = None
+    if req.context_photo_id:
+        if is_dev_user:
+            from app.api.context_photos import _dev_photos
+            dev_photo = next((p for p in _dev_photos if p["id"] == req.context_photo_id), None)
+            if dev_photo:
+                context_image_url = dev_photo.get("image_url")
+        else:
+            ctx_resp = (
+                supabase.table("context_photos")
+                .select("image_url")
+                .eq("id", req.context_photo_id)
+                .eq("user_id", user.user_id)
+                .maybe_single()
+                .execute()
+            )
+            if ctx_resp.data:
+                context_image_url = ctx_resp.data.get("image_url")
 
     try:
         job_id = create_job(
@@ -68,11 +74,11 @@ async def generate_image(
             narrative=req.narrative,
             aspect_ratio=req.aspect_ratio.value,
             image_url=req.image_url,
+            dish_name=req.dish_name,
             business_name=req.business_name,
             location=req.location,
             post_context=req.post_context,
-            context_photo_id=req.context_photo_id,
-            context_description=context_description,
+            context_image_url=context_image_url,
         )
     except Exception as e:
         # Refund credits on job creation failure (skip for dev user)

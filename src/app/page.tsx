@@ -4,7 +4,6 @@ import { useWizardStore } from "@/store/wizard";
 import { t } from "@/lib/i18n";
 import StepUpload from "@/components/StepUpload";
 import StepStylePicker from "@/components/StepStylePicker";
-import StepContext from "@/components/StepContext";
 import StepLoading from "@/components/StepLoading";
 import StepCanvas from "@/components/StepCanvas";
 import { ChefHat, ArrowLeft, ArrowRight } from "lucide-react";
@@ -18,7 +17,6 @@ export default function WizardPage() {
     if (step === 1) {
       return !!store.originalImagePreview && !!store.selectedStyleId && !!store.selectedNarrative;
     }
-    if (step === 2) return true; // Step context es opcional
     return false;
   };
 
@@ -30,16 +28,13 @@ export default function WizardPage() {
       store.selectedStyleId &&
       store.selectedNarrative
     ) {
-      store.setStep(2);
-    } else if (step === 2) {
-      store.setStep(3);
+      store.setStep(2); // → Loading/Generation
     }
   };
 
   const goBack = () => {
     if (step === 1) store.setStep(0);
-    else if (step === 2) store.setStep(1);
-    else if (step === 4) store.setStep(2); // De canvas a context, evitando loading
+    else if (step === 3) store.setStep(1); // Canvas → Estilo, skip loading
   };
 
   return (
@@ -51,7 +46,7 @@ export default function WizardPage() {
 
       <div className="flex items-center gap-2 px-6 py-3 border-b border-gray-800/50 overflow-x-auto">
         {t.steps.map((label, i) => {
-          const canNavigate = i < step && step !== 3 && i !== 3;
+          const canNavigate = i < step && step !== 2 && i !== 2;
           return (
             <div
               key={i}
@@ -86,12 +81,11 @@ export default function WizardPage() {
       <main className="flex-1 px-6 py-8 max-w-5xl mx-auto w-full">
         {step === 0 && <StepUpload />}
         {step === 1 && <StepStylePicker />}
-        {step === 2 && <StepContext />}
-        {step === 3 && <StepLoading />}
-        {step === 4 && <StepCanvas />}
+        {step === 2 && <StepLoading />}
+        {step === 3 && <StepCanvas />}
       </main>
 
-      {step !== 3 && step !== 4 && (
+      {step !== 2 && step !== 3 && (
         <footer className="px-6 py-4 border-t border-gray-800 flex justify-between">
           <button
             onClick={goBack}

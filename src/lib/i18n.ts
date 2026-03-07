@@ -1,6 +1,6 @@
 export const t = {
   appName: "FoodSocial AI",
-  steps: ["Subir", "Estilo", "Mensaje", "Generar", "Exportar"],
+  steps: ["Subir", "Estilo", "Generar", "Diseñar"],
   upload: {
     title: "Sube Tu Foto",
     subtitle: "Toma una foto de tu plato -- incluso con mala luz. Lo transformaremos.",
@@ -8,24 +8,16 @@ export const t = {
     formats: "JPG, PNG, WebP - Máx 20MB",
     change: "Cambiar",
     minRes: "La imagen debe tener al menos 400x400px",
-  },
-  style: {
-    title: "Elige un Estilo",
-    subtitle: "Selecciona el ambiente para tu foto",
-    narrativeTitle: "Toque Narrativo",
-    narrativeSubtitle: "Añade un elemento humano a la escena",
-    formatTitle: "Formato de Imagen",
-    formatSubtitle: "Elige la proporción de la imagen generada",
-  },
-  context: {
-    title: "Personaliza el Mensaje",
-    subtitle: "Danos contexto para crear tus textos y hashtags (Opcional)",
+    dishName: "Nombre del plato",
+    dishNamePlace: "Ej: Paella Valenciana",
     businessName: "Nombre de tu negocio",
     businessNamePlace: "Ej: La Brasa Burger",
     location: "Población y Provincia",
     locationPlace: "Ej: Valencia, España",
     postContext: "Motivo de la publicación",
     postContextPlace: "Ej: Fiestas locales, o menú de hoy...",
+    formatTitle: "Formato de Imagen",
+    formatSubtitle: "Elige la proporción de la imagen generada",
     presets: {
       none: "Selecciona un motivo (Opcional)",
       weekend: "¡Menú especial fin de semana!",
@@ -35,6 +27,15 @@ export const t = {
       valentine: "Día de los Enamorados",
     },
     customContext: "Otro (escribe tu propio motivo)",
+  },
+  style: {
+    title: "Elige un Estilo",
+    subtitle: "Selecciona el ambiente para tu foto",
+    narrativeTitle: "Toque Narrativo",
+    narrativeSubtitle: "Añade un elemento humano a la escena",
+    contextTitle: "Tu Identidad Visual",
+    contextSubtitle:
+      "Sube una foto de tu local, graffiti, logo... La IA integrará su atmósfera en el fondo de tu imagen.",
   },
   loading: {
     messages: [
@@ -64,15 +65,6 @@ export const t = {
     caption: "Texto y Hashtags",
     copyText: "Copiar Texto",
     copied: "¡Copiado!",
-    createAnother: "Crear Otro",
-  },
-  export: {
-    title: "Listo para Publicar",
-    caption: "Texto y Hashtags",
-    copyText: "Copiar Texto",
-    copied: "¡Copiado!",
-    downloadBtn: "Descargar",
-    share: "Compartir",
     createAnother: "Crear Otro",
   },
   nav: {

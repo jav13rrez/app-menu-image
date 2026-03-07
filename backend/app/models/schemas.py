@@ -18,6 +18,7 @@ class GenerateRequest(BaseModel):
     style_id: str = Field(..., min_length=1, description="Identificador del estilo seleccionado")
     narrative: str = Field(default="none", description="Tipo de toque narrativo")
     aspect_ratio: AspectRatio = Field(default=AspectRatio.SQUARE)
+    dish_name: Optional[str] = Field(default=None, description="Nombre del plato")
     business_name: Optional[str] = Field(default=None, description="Nombre del negocio")
     location: Optional[str] = Field(default=None, description="Población y Provincia")
     post_context: Optional[str] = Field(default=None, description="Motivo de la publicación")

@@ -173,6 +173,7 @@ def build_prompt(
     style_id: str,
     narrative: str,
     aspect_ratio: str,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
@@ -212,6 +213,12 @@ def build_prompt(
 
     # --- 4. Business Context Layer ---
     context_parts: list[str] = []
+    if dish_name:
+        context_parts.append(
+            f"DISH IDENTITY: This dish is called '{dish_name}'. "
+            f"Use this knowledge to inform the visual storytelling and ensure "
+            f"the presentation is coherent with the dish's culinary tradition."
+        )
     if context_description:
         context_parts.append(
             f"VENUE VISUAL CONTEXT: A reference image of the venue/brand identity has been provided. "

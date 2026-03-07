@@ -19,6 +19,7 @@ async def generate_food_image(
     style_id: str,
     narrative: str,
     aspect_ratio: str,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
@@ -31,6 +32,7 @@ async def generate_food_image(
         style_id=style_id,
         narrative=narrative,
         aspect_ratio=aspect_ratio,
+        dish_name=dish_name,
         business_name=business_name,
         location=location,
         post_context=post_context,
@@ -53,8 +55,55 @@ async def generate_food_image(
     raise RuntimeError("Gemini no devolvió una imagen")
 
 
+async def analyze_context_photo(image_url: str) -> str:
+    """Analyze a context photo (restaurant, logo, mural, etc.) and return a
+    textual description of its atmosphere, textures, and dominant colors.
+
+    This description is later injected into the generation prompt so the AI
+    integrates the venue's visual identity into the food photograph.
+    """
+    if not client:
+        return "Espacio del restaurante (descripción pendiente — Gemini no configurado)"
+
+    import base64
+
+    prompt = (
+        "Analiza esta imagen. Describe en 2-3 frases la atmósfera visual, "
+        "las texturas dominantes, la paleta de colores principal y el estilo "
+        "decorativo o artístico que transmite. Esta descripción se usará para "
+        "integrar esta atmósfera como contexto visual en fotografías de comida. "
+        "Responde SOLO con la descripción, sin introducción."
+    )
+
+    # Handle data URI vs URL
+    if image_url.startswith("data:"):
+        # Extract base64 from data URI
+        header, b64_data = image_url.split(",", 1)
+        mime_type = header.split(":")[1].split(";")[0]
+        image_bytes = base64.b64decode(b64_data)
+        img = Image.open(BytesIO(image_bytes))
+    else:
+        # Fetch from URL
+        import httpx
+        async with httpx.AsyncClient() as http_client:
+            resp = await http_client.get(image_url)
+            resp.raise_for_status()
+            img = Image.open(BytesIO(resp.content))
+
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=[prompt, img],
+        config=types.GenerateContentConfig(
+            response_modalities=["Text"],
+        ),
+    )
+
+    return response.text.strip()
+
+
 async def generate_caption(
     image_bytes: bytes,
+    dish_name: str | None = None,
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
@@ -63,8 +112,10 @@ async def generate_caption(
         raise RuntimeError("API key de Gemini no configurada")
 
     context_prompt = ""
-    if business_name or location or post_context:
+    if dish_name or business_name or location or post_context:
         context_prompt += "CONTEXTO DEL NEGOCIO Y LA PUBLICACIÓN:\n"
+        if dish_name:
+            context_prompt += f"- Nombre del plato: {dish_name}\n"
         if business_name:
             context_prompt += f"- Nombre del negocio: {business_name}\n"
         if location:
