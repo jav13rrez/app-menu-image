@@ -22,7 +22,7 @@ def create_job(
     location: str | None = None,
     post_context: str | None = None,
     context_photo_id: str | None = None,
-    context_description: str | None = None,
+    context_image_url: str | None = None,
 ) -> str:
     # 1. Bypass para usuarios sin login (dev UUID fallback)
     DEV_USER_ID = "00000000-0000-0000-0000-000000000000"
@@ -45,7 +45,7 @@ def create_job(
                 business_name=business_name,
                 location=location,
                 post_context=post_context,
-                context_description=context_description,
+                context_image_url=context_image_url,
             ))
         return job_id
 
@@ -89,6 +89,13 @@ async def _process_job(job_id: str):
         # 2. Descargar imagen original
         image_bytes = await _download_image(job["input_image_url"])
 
+        # Fetch context_image_url if we have context_photo_id
+        context_image_bytes = None
+        if job.get("context_photo_id"):
+            ctx_resp = supabase.table("context_photos").select("image_url").eq("id", job["context_photo_id"]).maybe_single().execute()
+            if ctx_resp.data:
+                context_image_bytes = await _download_image(ctx_resp.data.get("image_url"))
+
         # 3. Generar con Gemini
         generated_bytes = await generate_food_image(
             image_bytes=image_bytes,
@@ -98,7 +105,7 @@ async def _process_job(job_id: str):
             business_name=job.get("business_name"),
             location=job.get("location"),
             post_context=job.get("post_context"),
-            context_description=None,  # TODO: fetch from context_photos if context_photo_id present
+            context_image_bytes=context_image_bytes,
         )
 
         # 4. Subir a Supabase Storage (Opcional, por ahora simulamos URL o usamos base64)
@@ -151,11 +158,16 @@ async def _process_job_no_db(
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
-    context_description: str | None = None,
+    context_image_url: str | None = None,
 ):
     jobs_store[job_id] = {"status": JobStatus.PROCESSING, "user_id": user_id, "result": None, "error": None}
     try:
         image_bytes = await _download_image(image_url)
+        
+        context_image_bytes = None
+        if context_image_url:
+            context_image_bytes = await _download_image(context_image_url)
+
         generated_bytes = await generate_food_image(
             image_bytes=image_bytes,
             style_id=style_id,
@@ -165,7 +177,7 @@ async def _process_job_no_db(
             business_name=business_name,
             location=location,
             post_context=post_context,
-            context_description=context_description,
+            context_image_bytes=context_image_bytes,
         )
         caption_data = await generate_caption(
             image_bytes=generated_bytes,

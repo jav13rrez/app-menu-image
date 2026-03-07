@@ -25,6 +25,40 @@ export default function ContextPhotoPicker() {
     const selectedContextPhotoId = useWizardStore((s) => s.selectedContextPhotoId);
     const setSelectedContextPhotoId = useWizardStore((s) => s.setSelectedContextPhotoId);
 
+    // Client-side image resizing constraint
+    const MAX_PHOTO_DIMENSION = 1024;
+
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target?.result as string;
+                img.onload = () => {
+                    let { width, height } = img;
+
+                    if (width > MAX_PHOTO_DIMENSION || height > MAX_PHOTO_DIMENSION) {
+                        const ratio = Math.min(MAX_PHOTO_DIMENSION / width, MAX_PHOTO_DIMENSION / height);
+                        width = Math.round(width * ratio);
+                        height = Math.round(height * ratio);
+                    }
+
+                    const canvas = document.createElement("canvas");
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) return reject("Canvas ctx not found");
+
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL("image/jpeg", 0.85)); // 85% JS JPEG compression 
+                };
+                img.onerror = (error) => reject(error);
+            };
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
     // Fetch photos on mount
     useEffect(() => {
         fetchPhotos();
@@ -51,44 +85,37 @@ export default function ContextPhotoPicker() {
         setIsUploading(true);
         setError(null);
 
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-            try {
-                const imageUrl = reader.result as string;
+        try {
+            const resizedImageUrl = await resizeImage(file);
 
-                const res = await fetch(`${API_BASE}/api/v1/context-photos/`, {
-                    method: "POST",
-                    headers: getAuthHeaders(),
-                    body: JSON.stringify({
-                        image_url: imageUrl,
-                        label: file.name.replace(/\.[^.]+$/, "") || "Mi espacio",
-                    }),
-                });
+            const res = await fetch(`${API_BASE}/api/v1/context-photos/`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                body: JSON.stringify({
+                    image_url: resizedImageUrl,
+                    label: file.name.replace(/\.[^.]+$/, "") || "Mi espacio",
+                }),
+            });
 
-                if (res.ok) {
-                    const data = await res.json();
-                    setPhotos((prev) => [...prev, data.photo]);
-                } else {
-                    let errorMsg = "Error al subir la foto.";
-                    try {
-                        const err = await res.json();
-                        errorMsg = err.detail || errorMsg;
-                    } catch {
-                        // response wasn't JSON
-                    }
-                    setError(errorMsg);
+            if (res.ok) {
+                const data = await res.json();
+                setPhotos((prev) => [...prev, data.photo]);
+            } else {
+                let errorMsg = "Error al subir la foto.";
+                try {
+                    const err = await res.json();
+                    errorMsg = err.detail || errorMsg;
+                } catch {
+                    // response wasn't JSON
                 }
-            } catch {
-                setError(`Error de conexión con el servidor (${API_BASE}).`);
-            } finally {
-                setIsUploading(false);
+                setError(errorMsg);
             }
-        };
-        reader.onerror = () => {
-            setError("Error al leer el archivo.");
+        } catch (err: any) {
+            console.error("Context photo upload error details:", err);
+            setError(`Error: ${err?.message || err}`);
+        } finally {
             setIsUploading(false);
-        };
-        reader.readAsDataURL(file);
+        }
     };
 
     const handleDelete = async (photoId: string) => {
@@ -124,8 +151,8 @@ export default function ContextPhotoPicker() {
                         type="button"
                         onClick={() => setSelectedContextPhotoId(null)}
                         className={`w-20 h-20 rounded-xl flex flex-col items-center justify-center gap-1 transition-all cursor-pointer ${selectedContextPhotoId === null
-                                ? "border-2 border-red-500/70 bg-red-500/10 text-red-400"
-                                : "border border-gray-600 bg-gray-800/60 text-gray-500 hover:border-gray-500"
+                            ? "border-2 border-red-500/70 bg-red-500/10 text-red-400"
+                            : "border border-gray-600 bg-gray-800/60 text-gray-500 hover:border-gray-500"
                             }`}
                     >
                         <X className={`w-5 h-5 ${selectedContextPhotoId === null ? "text-red-400" : "text-gray-500"}`} />

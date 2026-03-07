@@ -74,20 +74,73 @@ export default function StepUpload() {
     }
   };
 
+  const MAX_PHOTO_DIMENSION = 1024;
+
+  const resizeImage = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          let { width, height } = img;
+
+          if (width > MAX_PHOTO_DIMENSION || height > MAX_PHOTO_DIMENSION) {
+            const ratio = Math.min(MAX_PHOTO_DIMENSION / width, MAX_PHOTO_DIMENSION / height);
+            width = Math.round(width * ratio);
+            height = Math.round(height * ratio);
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject("Canvas ctx not found");
+
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject("Blob conversion failed");
+            }
+          }, "image/jpeg", 0.85); // 85% JS JPEG compression 
+        };
+        img.onerror = (error) => reject(error);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   const onDrop = useCallback(
-    (accepted: File[]) => {
+    async (accepted: File[]) => {
       const file = accepted[0];
       if (!file) return;
 
       const img = new Image();
       const url = URL.createObjectURL(file);
-      img.onload = () => {
+      img.onload = async () => {
         if (img.width < MIN_WIDTH || img.height < MIN_HEIGHT) {
           alert(t.upload.minRes);
           URL.revokeObjectURL(url);
           return;
         }
-        setImage(file, url);
+
+        try {
+          const resizedBlob = await resizeImage(file);
+          const resizedFile = new File([resizedBlob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+            type: "image/jpeg",
+            lastModified: Date.now()
+          });
+          const resizedUrl = URL.createObjectURL(resizedBlob);
+          setImage(resizedFile, resizedUrl);
+          URL.revokeObjectURL(url); // Clean up the original large image url
+        } catch (e) {
+          console.error("Failed to resize image, using original", e);
+          setImage(file, url);
+        }
+
       };
       img.src = url;
     },
@@ -126,8 +179,8 @@ export default function StepUpload() {
           <div
             {...getRootProps()}
             className={`w-full max-w-md aspect-square rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-colors duration-200 ${isDragActive
-                ? "border-amber-500 bg-amber-500/10"
-                : "border-gray-600 hover:border-gray-400"
+              ? "border-amber-500 bg-amber-500/10"
+              : "border-gray-600 hover:border-gray-400"
               }`}
           >
             <input {...getInputProps()} aria-label={t.upload.title} />
@@ -153,8 +206,8 @@ export default function StepUpload() {
               onClick={() => setAspectRatio(meta.ratio)}
               aria-label={`Proporción ${meta.ratio}`}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all duration-200 ${selectedAspectRatio === meta.ratio
-                  ? "bg-amber-600 text-white"
-                  : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                ? "bg-amber-600 text-white"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                 }`}
             >
               <RatioIcon meta={meta} selected={selectedAspectRatio === meta.ratio} />

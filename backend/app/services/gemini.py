@@ -23,7 +23,7 @@ async def generate_food_image(
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
-    context_description: str | None = None,
+    context_image_bytes: bytes | None = None,
 ) -> bytes:
     if not client:
         raise RuntimeError("API key de Gemini no configurada")
@@ -36,13 +36,18 @@ async def generate_food_image(
         business_name=business_name,
         location=location,
         post_context=post_context,
-        context_description=context_description,
+        has_context_image=bool(context_image_bytes),
     )
     img = Image.open(BytesIO(image_bytes))
 
+    contents = [prompt, img]
+    if context_image_bytes:
+        ctx_img = Image.open(BytesIO(context_image_bytes))
+        contents.append(ctx_img)
+
     response = client.models.generate_content(
         model=MODEL,
-        contents=[prompt, img],
+        contents=contents,
         config=types.GenerateContentConfig(
             response_modalities=["Text", "Image"],
         ),

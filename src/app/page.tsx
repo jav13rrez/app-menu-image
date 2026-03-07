@@ -7,10 +7,22 @@ import StepStylePicker from "@/components/StepStylePicker";
 import StepLoading from "@/components/StepLoading";
 import StepCanvas from "@/components/StepCanvas";
 import { ChefHat, ArrowLeft, ArrowRight } from "lucide-react";
+import { useEffect } from "react";
 
 export default function WizardPage() {
   const store = useWizardStore();
   const step = store.currentStep;
+
+  useEffect(() => {
+    // If we lost the original image due to a page reload / HMR, go back to step 0
+    // (except on step 3 where we have generated the result and might not care, 
+    // but better to just enforce it for step 1 and 2 to avoid dead ends)
+    if (step === 1 || step === 2) {
+      if (!store.originalImagePreview) {
+        store.setStep(0);
+      }
+    }
+  }, [step, store.originalImagePreview, store]);
 
   const canGoNext = () => {
     if (step === 0) return !!store.originalImagePreview;

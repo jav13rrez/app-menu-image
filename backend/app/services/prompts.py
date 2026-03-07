@@ -177,7 +177,7 @@ def build_prompt(
     business_name: str | None = None,
     location: str | None = None,
     post_context: str | None = None,
-    context_description: str | None = None,
+    has_context_image: bool = False,
 ) -> str:
     """Build a complete image generation prompt for Nano Banana 2.
 
@@ -219,14 +219,17 @@ def build_prompt(
             f"Use this knowledge to inform the visual storytelling and ensure "
             f"the presentation is coherent with the dish's culinary tradition."
         )
-    if context_description:
+    if has_context_image:
         context_parts.append(
-            f"VENUE VISUAL CONTEXT: A reference image of the venue/brand identity has been provided. "
-            f"It is described as: {context_description}. "
-            f"This image may be a photograph, an illustration, a mural, graffiti, artwork, "
-            f"or any visual that represents the brand identity. "
-            f"Extract its textures, colors, and atmosphere, and subtly integrate them "
-            f"into the background and environmental elements of the final image."
+            "VENUE VISUAL CONTEXT — MULTIMODAL REFERENCE:\n"
+            "The second image attached is a reference for the venue's background.\n"
+            "CRITICAL INSTRUCTION: You must completely TRANSFORM this background image to match the\n"
+            "'Styling & Aesthetics', Lighting, Camera & Technical Specs defined above.\n"
+            "The second image might be an amateur, poorly-lit photograph. DO NOT let its poor lighting\n"
+            "or mediocre quality reduce the final output's quality. Instead, extract its contents\n"
+            "(layout, objects, structural essence) and render them at a 'Michelin Guide cover' level,\n"
+            "seamlessly integrating them behind the hero dish using our premium lighting and mood.\n"
+            "The background must adapt to our high-end style, not the other way around."
         )
     if business_name:
         context_parts.append(

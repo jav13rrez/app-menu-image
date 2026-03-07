@@ -78,6 +78,7 @@ async def generate_image(
             business_name=req.business_name,
             location=req.location,
             post_context=req.post_context,
+            context_photo_id=req.context_photo_id,
             context_image_url=context_image_url,
         )
     except Exception as e:
